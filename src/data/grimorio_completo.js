@@ -6606,9 +6606,9 @@ export const grimorioCompleto = [
   },
   {
     "index": "fly",
-    "name": "Fly",
+    "name": "Volar",
     "desc": [
-      "You touch a willing creature. The target gains a flying speed of 60 feet for the duration. When the spell ends, the target falls if it is still aloft, unless it can stop the fall."
+      "Tocas a una criatura voluntaria. El objetivo gana una velocidad de vuelo de 60 pies durante la duración del conjuro. Cuando termine el conjuro, el objetivo cae si sigue volando, a menos que pueda detener la caída."
     ],
     "higher_level": [
       "When you cast this spell using a spell slot of 4th level or higher, you can target one additional creature for each slot level above 3rd."

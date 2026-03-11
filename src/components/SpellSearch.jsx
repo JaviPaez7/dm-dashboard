@@ -31,10 +31,15 @@ const SpellSearch = () => {
       const queryLower = query.toLowerCase();
 
       const found = grimorioCompleto.filter((spell) => {
-        const nombre = (spell.name || spell.nombre || "").toLowerCase();
+        // --- LA MAGIA BILINGÜE ---
+        // 1. Nombre en Español
+        const nombreES = (spell.name || spell.nombre || "").toLowerCase();
+        // 2. Nombre en Inglés (index) reemplazando guiones por espacios
+        const nombreEN = (spell.index || "").toLowerCase().replace(/-/g, " ");
+
         const level = spell.level !== undefined ? spell.level.toString() : "";
 
-        // --- FILTRO DE CLASE MEJORADO (Ignora mayúsculas/minúsculas) ---
+        // Filtro de Clase (Ignora mayúsculas/minúsculas)
         const matchesClass =
           !selectedClass ||
           (spell.classes &&
@@ -45,7 +50,9 @@ const SpellSearch = () => {
               return className === selectedClass.toLowerCase();
             }));
 
-        const matchesName = nombre.includes(queryLower);
+        // Coincide si lo que escribimos está en español O en inglés
+        const matchesName =
+          nombreES.includes(queryLower) || nombreEN.includes(queryLower);
         const matchesLevel = !selectedLevel || level === selectedLevel;
 
         return matchesName && matchesLevel && matchesClass;
@@ -57,7 +64,7 @@ const SpellSearch = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [query, selectedLevel, selectedClass]);
 
-  // --- TUS FUNCIONES DE SEGURIDAD (Mantenidas al 100%) ---
+  // --- TUS FUNCIONES DE SEGURIDAD ---
   const getText = (obj, keys) => {
     for (const key of keys) {
       if (obj[key] !== undefined && obj[key] !== null) {
@@ -92,7 +99,7 @@ const SpellSearch = () => {
       <div className="flex flex-col gap-2 mb-4">
         <input
           type="text"
-          placeholder="Buscar conjuro..."
+          placeholder="Nombre (Ej: Fireball o Bola de fuego)..."
           className="bg-gray-700/50 border border-gray-600 p-2 rounded-lg w-full text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 text-sm"
           value={query}
           onChange={(e) => {
@@ -172,7 +179,6 @@ const SpellSearch = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs mb-4 bg-gray-900/50 p-2 rounded border border-gray-700/50">
-              {/* Bloques de Tiempo, Rango, Compo, Duración... */}
               <div>
                 <span className="text-gray-500 font-bold uppercase">
                   Tiempo:{" "}
@@ -215,7 +221,7 @@ const SpellSearch = () => {
             </div>
           </div>
         ) : (
-          /* TU LISTA DE RESULTADOS ORIGINAL */
+          /* LISTA DE RESULTADOS */
           <ul className="space-y-1">
             {results.map((spell, idx) => (
               <li key={spell.index || idx} className="animate-fade-in">

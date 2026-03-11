@@ -35,13 +35,27 @@ const CR_LEVELS = [
   "30",
 ];
 
+// --- NUEVO: Diccionario para traducir fracciones a decimales ---
+const crToDecimal = {
+  "1/8": 0.125,
+  "1/4": 0.25,
+  "1/2": 0.5,
+};
+
+// --- NUEVO: Función para mostrar el CR bonito en la lista ---
+const formatCR = (cr) => {
+  if (cr === 0.125) return "1/8";
+  if (cr === 0.25) return "1/4";
+  if (cr === 0.5) return "1/2";
+  return cr;
+};
+
 const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const [query, setQuery] = useState("");
-  const [selectedCR, setSelectedCR] = useState(""); // Estado para el filtro de nivel
+  const [selectedCR, setSelectedCR] = useState("");
   const [results, setResults] = useState([]);
 
   useEffect(() => {
-    // Si no hay texto ni CR seleccionado, limpiamos
     if (!query.trim() && !selectedCR) {
       setResults([]);
       return;
@@ -52,12 +66,35 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
 
       // Función de ayuda para filtrar
       const filterLogic = (m) => {
-        const matchesName = m.name.toLowerCase().includes(queryLower);
-        // El CR puede venir como número (5) o string ("1/2"). Lo pasamos a string para comparar.
-        const matchesCR =
-          !selectedCR || m.challenge_rating?.toString() === selectedCR;
+        // 1. Nombre en Español (o el que traiga el manual)
+        const nombreES = (m.name || "").toLowerCase();
+
+        // 2. Nombre en Inglés (usando el index).
+        // Reemplazamos los guiones por espacios para que "red dragon" encuentre "red-dragon"
+        const nombreEN = (m.index || "").toLowerCase().replace(/-/g, " ");
+
+        // Si lo que escribes coincide con el español O con el inglés, lo muestra
+        const matchesName =
+          nombreES.includes(queryLower) || nombreEN.includes(queryLower);
+
+        // --- LÓGICA DE CR CORREGIDA ---
+        let matchesCR = true;
+        if (selectedCR) {
+          // Si el CR seleccionado es una fracción (ej: "1/4"), buscamos su equivalente decimal (0.25)
+          const decimalTarget = crToDecimal[selectedCR];
+          const monsterCR = m.challenge_rating ?? m.cr;
+
+          if (decimalTarget !== undefined) {
+            // Si es fracción, comparamos con el decimal o con el texto por si acaso
+            matchesCR = monsterCR === decimalTarget || monsterCR === selectedCR;
+          } else {
+            // Si es número entero, comparamos pasándolo a string
+            matchesCR = monsterCR?.toString() === selectedCR;
+          }
+        }
+
         return matchesName && matchesCR;
-      };
+      };;
 
       // 1. Manuales (Prioridad)
       const manualMatches = bestiarioES
@@ -84,7 +121,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, selectedCR]); // <--- Ahora vigila también el CR
+  }, [query, selectedCR]);
 
   return (
     <div className="h-full flex flex-col p-4 bg-transparent">
@@ -145,11 +182,11 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
                   className={`text-[10px] w-9 h-5 flex items-center justify-center rounded bg-gray-900 border border-gray-700 font-bold leading-none
   ${monster.isLocal ? "text-yellow-500 border-yellow-900/50" : "text-gray-400"} shadow-sm`}
                 >
-                  {/* BUSCAMOS EL CR EN VARIOS SITIOS POR SEGURIDAD */}
+                  {/* --- NUEVO: Mostramos el CR formateado bonito --- */}
                   {monster.data.challenge_rating !== undefined
-                    ? monster.data.challenge_rating
+                    ? formatCR(monster.data.challenge_rating)
                     : monster.data.cr !== undefined
-                      ? monster.data.cr
+                      ? formatCR(monster.data.cr)
                       : "-"}
                 </span>
                 <span

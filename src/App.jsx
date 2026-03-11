@@ -76,16 +76,49 @@ function App() {
 
   const removeCombatant = (id) =>
     setCombatants((prev) => prev.filter((c) => c.id !== id));
-  const updateHP = (id, delta) =>
+
+  const updateHP = (id, amount) => {
     setCombatants((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, hp: Math.max(0, c.hp + delta) } : c,
-      ),
+      prev.map((c) => {
+        if (c.id === id) {
+          // CORREGIDO: Quitamos el Math.min para permitir Vida Temporal
+          const newHp = Math.max(0, c.hp + amount);
+
+          if (c.isPlayer) {
+            setParty((prevParty) =>
+              prevParty.map((p) =>
+                p.name === c.name ? { ...p, hp: newHp } : p,
+              ),
+            );
+          }
+          return { ...c, hp: newHp };
+        }
+        return c;
+      }),
     );
+  };
+
+  const handleLongRest = () => {
+    if (
+      window.confirm(
+        "¿Hacer un Descanso Largo? Esto curará a todo el grupo al máximo.",
+      )
+    ) {
+      // 1. Curamos en la base de datos de la Party
+      setParty((prevParty) => prevParty.map((p) => ({ ...p, hp: p.maxHp })));
+
+      // 2. Si casualmente están en el Tracker de combate ahora mismo, los curamos ahí también
+      setCombatants((prev) =>
+        prev.map((c) => (c.isPlayer ? { ...c, hp: c.maxHp } : c)),
+      );
+    }
+  };
+
   const updateCombatantStats = (id, field, value) =>
     setCombatants((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: parseInt(value) } : c)),
     );
+
   const updateDeathSaves = (id, type, value) =>
     setCombatants((prev) =>
       prev.map((c) =>
@@ -164,7 +197,20 @@ function App() {
   };
 
   // --- FUNCIONES DE GRUPO ---
-  const savePartyMember = (m) => setParty([...party, m]);
+  const savePartyMember = (newMember) => {
+    setParty((prev) => {
+      // ¿Ya existe este ID en la party?
+      const exists = prev.find((p) => p.id === newMember.id);
+
+      if (exists) {
+        // Si existe, lo actualizamos
+        return prev.map((p) => (p.id === newMember.id ? newMember : p));
+      } else {
+        // Si no existe, lo añadimos al final
+        return [...prev, newMember];
+      }
+    });
+  };
   const deletePartyMember = (id) => setParty(party.filter((p) => p.id !== id));
   const addPartyMemberToCombat = (m) => {
     const initStr = prompt(`Iniciativa para ${m.name}:`, "0");
@@ -296,6 +342,7 @@ function App() {
       {/* --- MODALES INVISIBLES --- */}
       <PartyModal
         isOpen={isPartyModalOpen}
+        onLongRest={handleLongRest}
         onClose={() => setIsPartyModalOpen(false)}
         party={party}
         onSavePartyMember={savePartyMember}

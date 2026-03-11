@@ -9891,7 +9891,7 @@ export const bestiarioSRD = [
   },
   {
     index: "brown-bear",
-    name: "oso pardo",
+    name: "Oso pardo",
     size: "Large",
     type: "bestia",
     alignment: "unaligned",
@@ -11443,9 +11443,9 @@ export const bestiarioSRD = [
   },
   {
     index: "cockatrice",
-    name: "Aciano",
+    name: "Cockatrice",
     size: "Small",
-    type: "monstruosidad",
+    type: "Monstruosidad",
     alignment: "unaligned",
     armor_class: [
       {
@@ -13022,7 +13022,7 @@ export const bestiarioSRD = [
   },
   {
     index: "dire-wolf",
-    name: "lobo terrible",
+    name: "Lobo terrible",
     size: "Large",
     type: "bestia",
     alignment: "unaligned",
@@ -17914,7 +17914,7 @@ export const bestiarioSRD = [
   },
   {
     index: "giant-eagle",
-    name: "águila gigante",
+    name: "Águila gigante",
     desc: "A giant eagle is a noble creature that speaks its own language and understands speech in the Common tongue. A mated pair of giant eagles typically has up to four eggs or young in their nest (treat the young as normal eagles).",
     size: "Large",
     type: "bestia",
@@ -18321,7 +18321,7 @@ export const bestiarioSRD = [
   },
   {
     index: "giant-hyena",
-    name: "hiena gigante",
+    name: "Hiena gigante",
     size: "Large",
     type: "bestia",
     alignment: "unaligned",
@@ -20145,7 +20145,7 @@ export const bestiarioSRD = [
   },
   {
     index: "gnoll",
-    name: "gnoll",
+    name: "Gnoll",
     size: "Medium",
     type: "humanoide",
     subtype: "gnoll",
@@ -20336,7 +20336,7 @@ export const bestiarioSRD = [
   },
   {
     index: "goblin",
-    name: "Duende",
+    name: "Goblin",
     size: "Small",
     type: "humanoide",
     subtype: "goblinoid",
@@ -22674,7 +22674,7 @@ export const bestiarioSRD = [
   },
   {
     index: "hippogriff",
-    name: "hipogrifo",
+    name: "Hipogrifo",
     size: "Large",
     type: "monstruosidad",
     alignment: "unaligned",
@@ -22777,7 +22777,7 @@ export const bestiarioSRD = [
   },
   {
     index: "hobgoblin",
-    name: "Duende",
+    name: "Hobgoblin",
     size: "Medium",
     type: "humanoide",
     subtype: "goblinoid",
@@ -25702,7 +25702,7 @@ export const bestiarioSRD = [
   },
   {
     index: "lizardfolk",
-    name: "gente lagarto",
+    name: "Lagarto humanoide",
     size: "Medium",
     type: "humanoide",
     subtype: "lizardfolk",
@@ -26329,7 +26329,7 @@ export const bestiarioSRD = [
   },
   {
     index: "magmin",
-    name: "magmin",
+    name: "Magmin",
     size: "Small",
     type: "elemental",
     alignment: "chaotic neutral",
@@ -29256,7 +29256,7 @@ export const bestiarioSRD = [
   },
   {
     index: "orc",
-    name: "orco",
+    name: "Orco",
     size: "Medium",
     type: "humanoide",
     subtype: "orc",
@@ -31100,7 +31100,7 @@ export const bestiarioSRD = [
   },
   {
     index: "quasit",
-    name: "casi",
+    name: "Quasit",
     size: "Tiny",
     type: "demonio",
     subtype: "demon",
@@ -33086,7 +33086,7 @@ export const bestiarioSRD = [
   },
   {
     index: "scout",
-    name: "Explorar",
+    name: "Explorador",
     desc: "Scouts are skilled hunters and trackers who offer their services for a fee. Most hunt wild game, but a few work as bounty hunters, serve as guides, or provide military reconnaissance.",
     size: "Medium",
     type: "humanoide",
@@ -34727,7 +34727,7 @@ export const bestiarioSRD = [
   },
   {
     index: "sprite",
-    name: "Duende",
+    name: "Sprite",
     size: "Tiny",
     type: "vidente",
     alignment: "neutral good",
@@ -39334,7 +39334,7 @@ export const bestiarioSRD = [
   },
   {
     index: "warhorse",
-    name: "caballo de guerra",
+    name: "Caballo de guerra",
     size: "Large",
     type: "bestia",
     alignment: "unaligned",
@@ -42341,7 +42341,7 @@ export const bestiarioSRD = [
   },
   {
     index: "worg",
-    name: "huargo",
+    name: "Huargo",
     desc: "A worg is an evil predator that delights in hunting and devouring creatures weaker than itself. Cunning and malevolent, worgs roam across the remote wilderness or are raised by goblins and hobgoblins. Those creatures use worgs as mounts, but a worg will turn on its rider if it feels mistreated or malnourished. Worgs speak in their own language and Goblin, and a few learn to speak Common as well.",
     size: "Large",
     type: "monstruosidad",

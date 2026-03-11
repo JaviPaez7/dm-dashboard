@@ -216,6 +216,73 @@ const TRACKS = [
     loop: false,
     color: "text-green-500 border-green-600/50 hover:bg-green-900/20",
   },
+  {
+    label: "FAAAH",
+    file: "/sounds/FAAAH.mp3",
+    loop: false,
+    color: "text-cyan-500 border-cyan-600/50 hover:bg-cyan-900/20",
+  },
+  {
+    label: "Romance",
+    file: "/sounds/Romance.mp3",
+    loop: false,
+    color: "text-orange-500 border-orange-600/50 hover:bg-orange-900/20",
+  },
+  {
+    label: "Galaxymeme",
+    file: "/sounds/Galaxymeme.mp3",
+    loop: false,
+    color: "text-green-500 border-green-600/50 hover:bg-green-900/20",
+  },
+  {
+    label: "Get Out",
+    file: "/sounds/Getout.mp3",
+    loop: false,
+    color: "text-red-500 border-red-600/50 hover:bg-red-900/20",
+  },
+  {
+    label: "Apple pay",
+    file: "/sounds/Applepay.mp3",
+    loop: false,
+    color: "text-purple-500 border-purple-600/50 hover:bg-purple-900/20",
+  },
+  {
+    label: "Lizard",
+    file: "/sounds/Lizard.mp3",
+    loop: false,
+    color: "text-yellow-500 border-yellow-600/50 hover:bg-yellow-900/20",
+  },
+  {
+    label: "Everest",
+    file: "/sounds/Everest.mp3",
+    loop: false,
+    color: "text-green-500 border-green-600/50 hover:bg-green-900/20",
+  },
+  {
+    label: "Peruano",
+    file: "/sounds/Peruano.mp3",
+    loop: false,
+    color: "text-purple-500 border-purple-600/50 hover:bg-purple-900/20",
+  },
+  {
+    label: "Auron Alarma",
+    file: "/sounds/AuronAlarma.mp3",
+    loop: false,
+    color: "text-red-500 border-red-600/50 hover:bg-red-900/20",
+  },
+  {
+    label: "Broly",
+    file: "/sounds/Broly.mp3",
+    loop: false,
+    color: "text-orange-500 border-orange-600/50 hover:bg-orange-900/20",
+  },
+  {
+    label: "Necesito pito",
+    file: "/sounds/Necesitopito.mp3",
+    loop: false,
+    color: "text-purple-500 border-purple-600/50 hover:bg-purple-900/20",
+  },
+
 ];
 
 const Soundboard = () => {
