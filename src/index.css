@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lato:wght@300;400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Definimos nuestros colores de mazmorra */
+  --color-dungeon-dark: #0f1115;      /* Fondo casi negro */
+  --color-dungeon-panel: #161b22;     /* Fondo de paneles */
+  --color-dungeon-gold: #d4af37;      /* Dorado antiguo */
+  --color-dungeon-red: #8a1c1c;       /* Rojo sangre */
+  
+  /* Definimos las fuentes */
+  --font-fantasy: 'Cinzel', serif;    /* Títulos épicos */
+  --font-body: 'Lato', sans-serif;    /* Texto legible */
+}
+
+/* Estilos Globales */
+body {
+  background-color: var(--color-dungeon-dark);
+  color: #e2e8f0;
+  font-family: var(--font-body);
+  /* Un fondo con textura sutil (opcional) */
+  background-image: 
+    radial-gradient(circle at 50% 0%, #1f2937 0%, transparent 70%),
+    radial-gradient(circle at 80% 80%, #1a1a1a 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Títulos con fuente de fantasía */
+h1, h2, h3 {
+  font-family: var(--font-fantasy);
+  letter-spacing: 0.05em;
+}
+
+/* Scrollbars Personalizadas (Estilo Pergamino Oscuro) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f1115; 
+}
+::-webkit-scrollbar-thumb {
+  background: #374151; 
+  border-radius: 4px;
+  border: 1px solid #1f2937;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37; /* Se pone dorado al pasar el ratón */
+}
+
+/* Animaciones suaves */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- PEGAR AL FINAL DE src/index.css --- */
+
+/* Botón Estándar (Gris Oscuro Mágico) */
+.btn-arcane {
+  background-color: #1f2937; /* gray-800 */
+  border: 1px solid #374151; /* gray-700 */
+  color: #e5e7eb; /* gray-200 */
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+.btn-arcane:hover {
+  border-color: #d4af37; /* Dorado */
+  color: #d4af37;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+}
+.btn-arcane:active {
+  transform: translateY(1px);
+}
+
+/* Botón Destacado (Dorado para Siguiente Turno) */
+.btn-gold {
+  background: linear-gradient(to bottom, #d4af37, #b4941f);
+  color: #1a202c; /* Texto oscuro */
+  border: 1px solid #856404;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+  transition: all 0.2s;
+}
+.btn-gold:hover {
+  background: linear-gradient(to bottom, #f6cc46, #d4af37);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+  transform: scale(1.02);
+}
