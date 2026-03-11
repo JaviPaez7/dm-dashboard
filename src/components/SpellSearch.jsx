@@ -2,41 +2,62 @@ import React, { useState, useEffect } from "react";
 import { grimorioCompleto } from "../data/grimorio_completo";
 
 const SPELL_LEVELS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const CLASSES = [
+  "Bardo",
+  "Clérigo",
+  "Druida",
+  "Paladín",
+  "Explorador",
+  "Hechicero",
+  "Brujo",
+  "Mago",
+];
 
 const SpellSearch = () => {
   const [query, setQuery] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState(""); // Nuevo estado para el filtro
+  const [selectedLevel, setSelectedLevel] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
   const [results, setResults] = useState([]);
   const [selectedSpell, setSelectedSpell] = useState(null);
 
-  // --- BUSCADOR EN VIVO (Sustituye al antiguo searchSpells) ---
   useEffect(() => {
-    // Si no hay búsqueda ni filtro, limpiamos resultados y cerramos la carta
-    if (!query.trim() && !selectedLevel) {
+    // Si no hay nada filtrado, no mostramos nada para no saturar
+    if (!query.trim() && !selectedLevel && !selectedClass) {
       setResults([]);
-      if (!selectedSpell) return; // Mantenemos la carta abierta si la está leyendo
+      return;
     }
 
     const delayDebounceFn = setTimeout(() => {
       const queryLower = query.toLowerCase();
 
       const found = grimorioCompleto.filter((spell) => {
-        const nombre = spell.name || spell.nombre || "";
+        const nombre = (spell.name || spell.nombre || "").toLowerCase();
         const level = spell.level !== undefined ? spell.level.toString() : "";
 
-        const matchesName = nombre.toLowerCase().includes(queryLower);
+        // --- FILTRO DE CLASE MEJORADO (Ignora mayúsculas/minúsculas) ---
+        const matchesClass =
+          !selectedClass ||
+          (spell.classes &&
+            spell.classes.some((c) => {
+              const className = (
+                typeof c === "object" ? c.name || c.index : c
+              ).toLowerCase();
+              return className === selectedClass.toLowerCase();
+            }));
+
+        const matchesName = nombre.includes(queryLower);
         const matchesLevel = !selectedLevel || level === selectedLevel;
 
-        return matchesName && matchesLevel;
+        return matchesName && matchesLevel && matchesClass;
       });
 
       setResults(found.slice(0, 30));
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, selectedLevel]);
+  }, [query, selectedLevel, selectedClass]);
 
-  // --- FUNCIONES DE SEGURIDAD (Intactas) ---
+  // --- TUS FUNCIONES DE SEGURIDAD (Mantenidas al 100%) ---
   const getText = (obj, keys) => {
     for (const key of keys) {
       if (obj[key] !== undefined && obj[key] !== null) {
@@ -53,7 +74,7 @@ const SpellSearch = () => {
       obj.desc || obj.descripcion || obj.description || "Sin descripción.";
     if (Array.isArray(val)) {
       return val.map((p, i) => (
-        <p key={i} className="mb-2 last:mb-0 text-gray-300">
+        <p key={i} className="mb-2 text-gray-300">
           {p}
         </p>
       ));
@@ -67,32 +88,48 @@ const SpellSearch = () => {
         <span>✨</span> Grimorio
       </h2>
 
-      {/* --- NUEVA BARRA DE BÚSQUEDA Y FILTRO --- */}
+      {/* BARRA DE FILTROS */}
       <div className="flex flex-col gap-2 mb-4">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Buscar conjuro..."
-            className="bg-gray-700/50 border border-gray-600 p-2 rounded-lg flex-grow w-full text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 text-sm"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedSpell(null); // Cerramos la carta al escribir para ver resultados
-            }}
-          />
+        <input
+          type="text"
+          placeholder="Buscar conjuro..."
+          className="bg-gray-700/50 border border-gray-600 p-2 rounded-lg w-full text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 text-sm"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSelectedSpell(null);
+          }}
+        />
 
+        <div className="flex gap-2">
           <select
-            className="bg-gray-800 border border-gray-600 text-purple-400 p-2 rounded-lg text-xs font-bold focus:outline-none focus:border-purple-500 cursor-pointer"
+            className="bg-gray-800 border border-gray-600 text-purple-400 p-2 rounded-lg text-xs font-bold flex-grow cursor-pointer"
             value={selectedLevel}
             onChange={(e) => {
               setSelectedLevel(e.target.value);
-              setSelectedSpell(null); // Cerramos la carta al filtrar
+              setSelectedSpell(null);
             }}
           >
-            <option value="">Niv: Todos</option>
+            <option value="">Niveles: Todos</option>
             {SPELL_LEVELS.map((lvl) => (
               <option key={lvl} value={lvl}>
-                {lvl === "0" ? "Truco" : `Nvl ${lvl}`}
+                {lvl === "0" ? "Trucos" : `Nivel ${lvl}`}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="bg-gray-800 border border-gray-600 text-blue-400 p-2 rounded-lg text-xs font-bold flex-grow cursor-pointer"
+            value={selectedClass}
+            onChange={(e) => {
+              setSelectedClass(e.target.value);
+              setSelectedSpell(null);
+            }}
+          >
+            <option value="">Clases: Todas</option>
+            {CLASSES.map((cls) => (
+              <option key={cls} value={cls}>
+                {cls}
               </option>
             ))}
           </select>
@@ -101,39 +138,41 @@ const SpellSearch = () => {
             onClick={() => {
               setQuery("");
               setSelectedLevel("");
+              setSelectedClass("");
               setSelectedSpell(null);
             }}
-            className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg border border-gray-600 text-gray-400 hover:text-red-400 transition-colors"
+            className="bg-gray-800 hover:bg-gray-700 px-3 rounded-lg border border-gray-600 text-gray-400"
           >
             ✖
           </button>
         </div>
       </div>
 
-      {/* --- ÁREA DE RESULTADOS --- */}
+      {/* RESULTADOS */}
       <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-3">
         {selectedSpell ? (
-          // --- TU TARJETA DE DETALLE ORIGINAL ---
+          /* TU TARJETA DE DETALLE ORIGINAL */
           <div className="bg-[#1a1c23] p-4 rounded border border-purple-500/30 animate-fade-in shadow-xl relative">
             <div className="flex justify-between items-start mb-2 border-b border-purple-500/20 pb-2">
               <div>
                 <h3 className="text-xl font-bold text-purple-400 font-fantasy capitalize">
                   {getText(selectedSpell, ["name", "nombre"])}
                 </h3>
-                <div className="text-xs text-purple-300 italic capitalize">
+                <div className="text-xs text-purple-300 italic">
                   Nivel {getText(selectedSpell, ["level", "nivel"])} -{" "}
                   {getText(selectedSpell, ["school", "escuela"])}
                 </div>
               </div>
               <button
                 onClick={() => setSelectedSpell(null)}
-                className="text-xs text-gray-500 hover:text-white px-2 py-1 rounded border border-gray-700 hover:bg-gray-700 transition-colors"
+                className="text-xs text-gray-500 hover:text-white px-2 py-1 rounded border border-gray-700"
               >
                 ✕ Cerrar
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs mb-4 bg-gray-900/50 p-2 rounded border border-gray-700/50">
+              {/* Bloques de Tiempo, Rango, Compo, Duración... */}
               <div>
                 <span className="text-gray-500 font-bold uppercase">
                   Tiempo:{" "}
@@ -173,21 +212,10 @@ const SpellSearch = () => {
 
             <div className="text-sm leading-relaxed max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
               {renderDescription(selectedSpell)}
-
-              {(selectedSpell.higher_level || selectedSpell.nivel_superior) && (
-                <div className="mt-3 pt-2 border-t border-gray-700 bg-purple-900/10 p-2 rounded">
-                  <span className="font-bold text-purple-400 block mb-1 text-xs uppercase">
-                    En niveles superiores:
-                  </span>
-                  <p className="text-gray-300">
-                    {getText(selectedSpell, ["higher_level", "nivel_superior"])}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         ) : (
-          // --- TU LISTA DE RESULTADOS ORIGINAL (Adaptada visualmente) ---
+          /* TU LISTA DE RESULTADOS ORIGINAL */
           <ul className="space-y-1">
             {results.map((spell, idx) => (
               <li key={spell.index || idx} className="animate-fade-in">
@@ -196,29 +224,19 @@ const SpellSearch = () => {
                   className="w-full text-left p-2 rounded hover:bg-gray-700/50 flex justify-between items-center group transition-colors border border-transparent hover:border-gray-600"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] w-6 h-5 flex items-center justify-center rounded bg-purple-900/30 border border-purple-700/50 text-purple-400 font-bold leading-none">
+                    <span className="text-[10px] w-6 h-5 flex items-center justify-center rounded bg-purple-900/30 border border-purple-700/50 text-purple-400 font-bold">
                       {getText(spell, ["level", "nivel"])}
                     </span>
                     <span className="font-medium text-purple-400 font-bold capitalize">
                       {getText(spell, ["name", "nombre"])}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-500 group-hover:text-purple-300">
-                    Leer →
+                  <span className="text-[10px] text-gray-500 italic">
+                    {spell.classes?.map((c) => c.name || c).join(", ")}
                   </span>
                 </button>
               </li>
             ))}
-            {results.length === 0 && (query || selectedLevel) && (
-              <p className="text-center text-gray-600 mt-4 text-xs italic">
-                No se encontró ese conjuro.
-              </p>
-            )}
-            {results.length === 0 && !query && !selectedLevel && (
-              <p className="text-center text-gray-600 mt-4 text-xs italic">
-                El grimorio está abierto...
-              </p>
-            )}
           </ul>
         )}
       </div>

@@ -27,7 +27,8 @@ const CombatantRow = ({
   isActive,
   onUpdateStats,
   onUpdateDeathSaves,
-  onViewStatBlock, // <--- Recibimos la función de salvaciones
+  onViewStatBlock,
+  onUpdateInitiative, // <--- NUEVO: Recibimos la función
 }) => {
   const [delta, setDelta] = useState("");
   const [showConditions, setShowConditions] = useState(false);
@@ -40,10 +41,8 @@ const CombatantRow = ({
     setDelta("");
   };
 
-  // Calcular porcentaje de vida
   const hpPercent = (combatant.hp / combatant.maxHp) * 100;
 
-  // Editar Stats (AC o MaxHP)
   const handleEditStat = (field, currentValue) => {
     const newValue = prompt(
       `Nuevo valor para ${field === "ac" ? "AC" : "Max HP"}:`,
@@ -54,12 +53,21 @@ const CombatantRow = ({
     }
   };
 
-  // Estilo visual si es el turno activo
+  // --- NUEVO: Editar Iniciativa ---
+  const handleEditInitiative = () => {
+    const newInit = prompt(
+      `Nueva iniciativa para ${combatant.name}:`,
+      combatant.initiative,
+    );
+    if (newInit !== null && !isNaN(newInit) && newInit !== "") {
+      onUpdateInitiative(combatant.id, parseInt(newInit));
+    }
+  };
+
   const activeStyle = isActive
     ? "border-l-4 border-yellow-400 bg-gray-700 shadow-[0_0_20px_rgba(234,179,8,0.15)] z-10 scale-[1.01]"
     : "border-l-4 border-gray-600 bg-gray-800/50 hover:bg-gray-700 opacity-90 hover:opacity-100";
 
-  // Selector de Salvaciones de Muerte (Circulitos)
   const DeathSaveSelector = ({ type, count, color }) => (
     <div className="flex gap-1">
       {[1, 2, 3].map((i) => (
@@ -81,7 +89,6 @@ const CombatantRow = ({
     <div
       className={`p-3 rounded mb-3 transition-all duration-300 relative mx-1 ${activeStyle}`}
     >
-      {/* CORRECCIÓN 2: Etiqueta ACTIVO mejor posicionada */}
       {isActive && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-gray-900 text-[9px] font-bold px-3 py-0.5 rounded-b-lg shadow-lg border-t-0 border border-yellow-600 z-20">
           TURNO ACTIVO
@@ -91,11 +98,19 @@ const CombatantRow = ({
       <div className="flex justify-between items-start gap-2">
         {/* IZQUIERDA: Datos del Personaje */}
         <div className="flex items-center gap-3 flex-grow min-w-0">
-          <div className="flex flex-col items-center min-w-[30px]">
+          {/* --- NUEVO: Bloque de Iniciativa Clicable --- */}
+          <div
+            onClick={handleEditInitiative}
+            className="flex flex-col items-center min-w-[36px] cursor-pointer hover:bg-gray-600 p-1 rounded transition-colors border border-transparent hover:border-yellow-500/50"
+            title="Editar Iniciativa"
+          >
             <span
               className={`font-bold text-xl leading-none ${isActive ? "text-yellow-400" : "text-gray-500"}`}
             >
               {combatant.initiative}
+            </span>
+            <span className="text-[8px] text-gray-500 uppercase mt-0.5 font-bold">
+              Init
             </span>
           </div>
 
@@ -107,10 +122,8 @@ const CombatantRow = ({
                 {combatant.name}
               </span>
 
-              {/* --- BOTÓN NUEVO: VER FICHA (Solo si tiene apiIndex) --- */}
               {combatant.apiIndex && (
                 <button
-                  // NUEVO: Ahora le pasamos el index Y los datos locales (si los tiene)
                   onClick={() =>
                     onViewStatBlock(combatant.apiIndex, combatant.localData)
                   }
@@ -121,7 +134,6 @@ const CombatantRow = ({
                 </button>
               )}
 
-              {/* Escudo AC Editable */}
               <div
                 onClick={() => handleEditStat("ac", combatant.ac || 10)}
                 className="flex items-center gap-1 bg-gray-900/60 px-2 py-0.5 rounded cursor-pointer hover:bg-gray-600 border border-gray-700 group transition-colors"
@@ -143,7 +155,6 @@ const CombatantRow = ({
 
             {/* LÓGICA DE VIDA vs MUERTE */}
             {combatant.hp > 0 ? (
-              // MODO VIVO: Barra de Vida
               <div className="w-full h-1.5 bg-gray-900 rounded-full mt-1 overflow-hidden">
                 <div
                   className={`h-full ${hpPercent <= 20 ? "bg-red-500" : hpPercent <= 50 ? "bg-yellow-500" : "bg-green-500"} transition-all duration-500`}
@@ -151,7 +162,6 @@ const CombatantRow = ({
                 ></div>
               </div>
             ) : (
-              // MODO MUERTE: Salvaciones
               <div className="mt-1 flex items-center justify-between bg-gray-900/80 p-1.5 rounded border border-red-900/50">
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] text-green-500 uppercase font-bold tracking-wider">
@@ -177,7 +187,6 @@ const CombatantRow = ({
               </div>
             )}
 
-            {/* Texto HP Editable */}
             <div className="flex items-center gap-2 mt-1">
               <span
                 className={`text-xs ${combatant.hp === 0 ? "text-red-500 font-bold animate-pulse" : "text-gray-400"}`}
@@ -192,7 +201,6 @@ const CombatantRow = ({
                 </span>
               </span>
 
-              {/* Iconos de condiciones */}
               <div className="flex gap-1 flex-wrap">
                 {combatant.conditions &&
                   combatant.conditions.map((icon, i) => (
@@ -242,7 +250,6 @@ const CombatantRow = ({
         </div>
       </div>
 
-      {/* Menú Desplegable de Condiciones */}
       {showConditions && (
         <div className="mt-2 p-2 bg-gray-900 rounded grid grid-cols-7 gap-1 animate-fade-in">
           {CONDITIONS.map((cond) => (
@@ -273,10 +280,12 @@ const CombatTracker = ({
   onNextTurn,
   onReset,
   onOpenPartyModal,
-  onUpdateStats, // <--- Recibir funcion stats
+  onUpdateStats,
   onUpdateDeathSaves,
   onViewStatBlock,
-  onOpenEncounterModal, // <--- Recibir funcion muerte
+  onOpenEncounterModal,
+  onUpdateInitiative, // <--- NUEVO
+  onClearMonsters, // <--- NUEVO
 }) => {
   const [name, setName] = useState("");
   const [initiative, setInitiative] = useState("");
@@ -311,7 +320,6 @@ const CombatTracker = ({
           >
             <span>🛡️</span> Grupo
           </button>
-
           <button
             onClick={onOpenEncounterModal}
             className="bg-purple-900/50 hover:bg-purple-800 text-purple-200 text-xs px-2 py-1 rounded border border-purple-800 flex items-center gap-1 transition-colors"
@@ -362,17 +370,12 @@ const CombatTracker = ({
             onUpdateHP={onUpdateHP}
             onToggleCondition={onToggleCondition}
             isActive={index === currentTurnIndex}
-            onUpdateStats={onUpdateStats} // <--- Pasar al hijo
+            onUpdateStats={onUpdateStats}
             onUpdateDeathSaves={onUpdateDeathSaves}
-            onViewStatBlock={onViewStatBlock} // <--- Pasar al hijo
+            onViewStatBlock={onViewStatBlock}
+            onUpdateInitiative={onUpdateInitiative} // <--- Pasamos la función al hijo
           />
         ))}
-        {combatants.length === 0 && (
-          <div className="text-center py-10 opacity-50 flex flex-col items-center">
-            <span className="text-4xl mb-2">💤</span>
-            <p>La mesa está tranquila...</p>
-          </div>
-        )}
       </div>
 
       {/* Botonera Flotante */}
@@ -380,10 +383,20 @@ const CombatTracker = ({
         <button
           onClick={onReset}
           className="bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-300 p-3 rounded-lg border border-gray-700 transition-colors"
-          title="Reiniciar Encuentro"
+          title="Eliminar A TODOS y reiniciar combate"
         >
           🗑️
         </button>
+
+        {/* --- NUEVO: Botón de limpiar monstruos --- */}
+        <button
+          onClick={onClearMonsters}
+          className="bg-gray-800 hover:bg-orange-900/50 text-gray-400 hover:text-orange-300 p-3 rounded-lg border border-gray-700 transition-colors"
+          title="Limpiar Monstruos (Dejar solo a los PJs vivos)"
+        >
+          🧹
+        </button>
+
         <button
           onClick={onNextTurn}
           className="flex-grow btn-gold py-3 rounded-lg flex items-center justify-center gap-2 text-lg"

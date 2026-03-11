@@ -50,6 +50,30 @@ function App() {
       ),
     );
   };
+
+  // 1. Función para actualizar la iniciativa y reordenar la lista
+  const updateInitiative = (id, newInitiative) => {
+    setCombatants((prev) => {
+      // Actualizamos la iniciativa del personaje tocado
+      const updated = prev.map((c) =>
+        c.id === id ? { ...c, initiative: newInitiative } : c,
+      );
+      // Y volvemos a ordenar la lista de mayor a menor
+      return updated.sort((a, b) => b.initiative - a.initiative);
+    });
+  };
+
+  // 2. Función para borrar solo a los monstruos (los que vienen del bestiario)
+  const clearMonsters = () => {
+    // Asumimos que los monstruos tienen "apiIndex" (porque vienen del bestiario)
+    // y los jugadores no. Así que nos quedamos solo con los que NO tienen apiIndex.
+    setCombatants((prev) => prev.filter((c) => !c.apiIndex));
+
+    // Opcional: Reiniciar el turno a 0 y la ronda a 1 para el próximo combate
+    setCurrentTurnIndex(0);
+    setRoundCount(1);
+  };
+
   const removeCombatant = (id) =>
     setCombatants((prev) => prev.filter((c) => c.id !== id));
   const updateHP = (id, delta) =>
@@ -129,7 +153,7 @@ function App() {
       name: data.name || "Criatura",
       apiIndex: data.index,
       isLocal: isLocal,
-      localData: isLocal ? data : null, 
+      localData: isLocal ? data : null,
       initiative: rolledInit,
       hp: finalHp,
       maxHp: finalHp,
@@ -207,7 +231,9 @@ function App() {
         onUpdateStats={updateCombatantStats}
         onUpdateDeathSaves={updateDeathSaves}
         onViewStatBlock={handleViewStatBlock}
-        onOpenEncounterModal={() => setIsEncounterModalOpen(true)} // <-- CABLE CONECTADO AQUÍ
+        onOpenEncounterModal={() => setIsEncounterModalOpen(true)}
+        onUpdateInitiative={updateInitiative}
+        onClearMonsters={clearMonsters}
       />
 
       {/* --- COLUMNA 2: CENTRO (PESTAÑAS) --- */}
