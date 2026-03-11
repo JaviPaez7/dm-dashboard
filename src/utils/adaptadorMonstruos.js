@@ -1,6 +1,4 @@
-// Esta función convierte el formato complejo del SRD al formato sencillo de tu App
 export const adaptarMonstruoSRD = (monstruo) => {
-  // 1. Gestionar la Armadura (A veces es un número, a veces un array)
   let armorClass = 10;
   if (Array.isArray(monstruo.armor_class)) {
     armorClass = monstruo.armor_class[0]?.value || 10;
@@ -8,14 +6,15 @@ export const adaptarMonstruoSRD = (monstruo) => {
     armorClass = monstruo.armor_class;
   }
 
-  // 2. Devolver el objeto con la estructura que tu App espera
   return {
     index: monstruo.index,
-    name: monstruo.name, // Si el JSON original está en inglés, esto saldrá en inglés
+    name: monstruo.name,
     type: monstruo.type,
+    alignment: monstruo.alignment,
     ac: armorClass,
     hp: monstruo.hit_points,
-    // Tu app espera 'stats', pero el SRD los tiene sueltos. Los agrupamos:
+    challenge_rating: monstruo.challenge_rating,
+
     stats: {
       str: monstruo.strength,
       dex: monstruo.dexterity,
@@ -24,10 +23,12 @@ export const adaptarMonstruoSRD = (monstruo) => {
       wis: monstruo.wisdom,
       cha: monstruo.charisma,
     },
-    speed: monstruo.speed, // Tu modal ya sabe leer esto
+    speed: monstruo.speed,
+    languages: monstruo.languages,
+    senses: monstruo.senses,
     actions: monstruo.actions,
     special_abilities: monstruo.special_abilities,
     legendary_actions: monstruo.legendary_actions,
-    isLocal: true, // Marcamos como local para que no busque en internet
+    isLocal: true,
   };
 };

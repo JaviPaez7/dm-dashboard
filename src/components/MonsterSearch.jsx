@@ -142,9 +142,15 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-[10px] w-8 h-5 flex items-center justify-center rounded bg-gray-900 border border-gray-700 font-bold ${monster.isLocal ? "text-yellow-500" : "text-gray-400"}`}
+                  className={`text-[10px] w-9 h-5 flex items-center justify-center rounded bg-gray-900 border border-gray-700 font-bold leading-none
+  ${monster.isLocal ? "text-yellow-500 border-yellow-900/50" : "text-gray-400"} shadow-sm`}
                 >
-                  {monster.data.challenge_rating}
+                  {/* BUSCAMOS EL CR EN VARIOS SITIOS POR SEGURIDAD */}
+                  {monster.data.challenge_rating !== undefined
+                    ? monster.data.challenge_rating
+                    : monster.data.cr !== undefined
+                      ? monster.data.cr
+                      : "-"}
                 </span>
                 <span
                   className={`text-sm ${monster.isLocal ? "text-yellow-400 font-bold" : "text-gray-200"}`}
