@@ -74,30 +74,6 @@ const CONDITIONS = [
   },
 ];
 
-// --- SUB-COMPONENTE TOOLTIP ---
-const StateTooltip = ({ info, children, direction = "up" }) => {
-  const isUp = direction === "up";
-  return (
-    <div className="group relative flex items-center justify-center">
-      {children}
-      <div
-        className={`pointer-events-none absolute ${isUp ? "bottom-full mb-2" : "top-full mt-2"} left-1/2 -translate-x-1/2 hidden group-hover:block w-44 bg-gray-950 border border-yellow-600/50 p-2.5 rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.9)] z-[200] animate-fade-in`}
-      >
-        <div className="text-yellow-500 font-bold text-[11px] border-b border-gray-800 mb-1.5 pb-1 flex justify-between uppercase">
-          <span>{info?.label}</span>
-          <span>{info?.icon}</span>
-        </div>
-        <p className="text-[10px] text-gray-300 leading-tight italic">
-          {info?.desc}
-        </p>
-        <div
-          className={`absolute left-1/2 -translate-x-1/2 border-[6px] border-transparent ${isUp ? "top-full border-t-gray-950" : "bottom-full border-b-gray-950"}`}
-        ></div>
-      </div>
-    </div>
-  );
-};
-
 const CombatantRow = ({
   combatant,
   onRemove,
@@ -114,7 +90,11 @@ const CombatantRow = ({
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState("");
 
-  // MAGIA DEL AUTO-SCROLL (Mantenido)
+  // NUEVO: Estados para manejar las descripciones sin globos flotantes
+  const [hoveredMenuCond, setHoveredMenuCond] = useState(null);
+  const [expandedCondition, setExpandedCondition] = useState(null);
+
+  // Auto-scroll
   const rowRef = useRef(null);
   useEffect(() => {
     if (isActive && rowRef.current) {
@@ -166,8 +146,8 @@ const CombatantRow = ({
   };
 
   const activeStyle = isActive
-    ? "border-l-4 border-yellow-400 bg-gray-700 shadow-[0_0_20px_rgba(234,179,8,0.2)] z-[60] scale-[1.01]"
-    : "border-l-4 border-gray-600 bg-gray-800/50 hover:bg-gray-700 hover:z-[50] opacity-90 transition-all";
+    ? "border-l-4 border-yellow-400 bg-gray-700 shadow-md"
+    : "border-l-4 border-gray-600 bg-gray-800/50 opacity-90 transition-colors";
 
   const DeathSaveSelector = ({ type, count, color }) => (
     <div className="flex gap-1">
@@ -184,20 +164,18 @@ const CombatantRow = ({
   );
 
   return (
-    <div
-      ref={rowRef}
-      className={`p-2.5 rounded mb-2 relative transition-all duration-300 ${activeStyle}`}
-    >
+    // Hemos quitado todos los z-index locos. Ya no hacen falta.
+    <div ref={rowRef} className={`p-2.5 rounded mb-2 relative ${activeStyle}`}>
       {isActive && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-gray-900 text-[9px] font-bold px-3 py-0.5 rounded-b-lg z-[70] shadow-md">
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-gray-900 text-[9px] font-bold px-3 py-0.5 rounded-b-lg shadow-md z-10">
           TURNO ACTIVO
         </div>
       )}
 
-      <div className="flex justify-between items-center gap-2">
+      <div className="flex justify-between items-start gap-2">
         <div className="flex items-center gap-3 flex-grow min-w-0">
-          {/* Iniciativa legible */}
-          <div className="flex flex-col items-center min-w-[36px] cursor-pointer">
+          {/* Iniciativa */}
+          <div className="flex flex-col items-center min-w-[36px] cursor-pointer mt-1">
             {editingField === "initiative" ? (
               <input
                 autoFocus
@@ -306,49 +284,78 @@ const CombatantRow = ({
               </div>
             )}
 
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`text-xs flex items-center font-mono ${combatant.hp === 0 ? "text-red-500" : "text-gray-400"}`}
-              >
-                HP: {combatant.hp} /
-                {editingField === "maxHp" ? (
-                  <input
-                    autoFocus
-                    type="number"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={saveEdit}
-                    onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                    className="w-10 bg-gray-800 text-center rounded text-xs ml-1"
-                  />
-                ) : (
-                  <span
-                    onClick={() => startEditing("maxHp", combatant.maxHp)}
-                    className="ml-1 cursor-pointer hover:underline"
-                  >
-                    {combatant.maxHp}
-                  </span>
-                )}
-              </span>
+            {/* ZONA DE ESTADOS ACTIVOS (Ahora sin globos flotantes) */}
+            <div className="flex flex-col w-full mt-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs flex items-center font-mono ${combatant.hp === 0 ? "text-red-500" : "text-gray-400"}`}
+                >
+                  HP: {combatant.hp} /
+                  {editingField === "maxHp" ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={saveEdit}
+                      onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                      className="w-10 bg-gray-800 text-center rounded text-xs ml-1"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => startEditing("maxHp", combatant.maxHp)}
+                      className="ml-1 cursor-pointer hover:underline"
+                    >
+                      {combatant.maxHp}
+                    </span>
+                  )}
+                </span>
 
-              <div className="flex gap-1 flex-wrap">
-                {combatant.conditions?.map((icon, i) => {
-                  const info = CONDITIONS.find((c) => c.icon === icon);
-                  return (
-                    <StateTooltip key={i} info={info} direction="up">
-                      <span className="text-sm cursor-help hover:scale-125 transition-transform">
-                        {icon}
-                      </span>
-                    </StateTooltip>
-                  );
-                })}
+                <div className="flex gap-1 flex-wrap">
+                  {combatant.conditions?.map((icon, i) => (
+                    <button
+                      key={i}
+                      onClick={() =>
+                        setExpandedCondition(
+                          expandedCondition === icon ? null : icon,
+                        )
+                      }
+                      onMouseEnter={() => setExpandedCondition(icon)}
+                      onMouseLeave={() => setExpandedCondition(null)}
+                      className="text-sm cursor-help hover:scale-125 transition-transform outline-none"
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* MAGIA 1: La explicación sale DENTRO de la fila, estirándola. Cero solapamientos. */}
+              {expandedCondition && (
+                <div className="mt-1.5 p-2 bg-gray-950/80 rounded border border-yellow-600/30 text-left animate-fade-in w-full shadow-inner">
+                  {(() => {
+                    const info = CONDITIONS.find(
+                      (c) => c.icon === expandedCondition,
+                    );
+                    return info ? (
+                      <>
+                        <div className="text-yellow-500 font-bold text-[10px] uppercase mb-0.5">
+                          {info.label} {info.icon}
+                        </div>
+                        <div className="text-[9px] text-gray-300 italic leading-tight">
+                          {info.desc}
+                        </div>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Botones HP tamaño normal */}
-        <div className="flex items-center gap-1 shrink-0 bg-gray-950/40 p-1 rounded-lg border border-gray-800/50">
+        {/* Botones HP */}
+        <div className="flex items-center gap-1 shrink-0 bg-gray-950/40 p-1 rounded-lg border border-gray-800/50 mt-1">
           <button
             onPointerDown={() => startDelta(-1)}
             onPointerUp={stopDelta}
@@ -383,21 +390,44 @@ const CombatantRow = ({
         </div>
       </div>
 
+      {/* MAGIA 2: MENÚ +FX SIN GLOBOS */}
       {showConditions && (
-        <div className="mt-2 p-2 bg-gray-950/90 rounded-lg grid grid-cols-7 gap-1 animate-fade-in border border-gray-800 shadow-xl relative z-[80]">
-          {CONDITIONS.map((cond) => (
-            <StateTooltip key={cond.label} info={cond} direction="down">
+        <div className="mt-3 p-2 bg-gray-950/90 rounded-lg border border-gray-800 shadow-inner">
+          <div className="grid grid-cols-7 gap-1">
+            {CONDITIONS.map((cond) => (
               <button
+                key={cond.label}
                 onClick={() => {
                   onToggleCondition(combatant.id, cond.icon);
                   setShowConditions(false);
+                  setHoveredMenuCond(null);
                 }}
-                className={`text-xl p-2 rounded hover:bg-gray-800 transition-all ${combatant.conditions?.includes(cond.icon) ? "bg-blue-900/40 ring-1 ring-blue-500 scale-90" : "grayscale opacity-50 hover:grayscale-0 hover:opacity-100"}`}
+                onMouseEnter={() => setHoveredMenuCond(cond)}
+                onMouseLeave={() => setHoveredMenuCond(null)}
+                className={`text-xl p-1.5 rounded hover:bg-gray-800 transition-all ${combatant.conditions?.includes(cond.icon) ? "bg-blue-900/40 ring-1 ring-blue-500 scale-90" : "grayscale opacity-50 hover:grayscale-0 hover:opacity-100"}`}
               >
                 {cond.icon}
               </button>
-            </StateTooltip>
-          ))}
+            ))}
+          </div>
+
+          {/* Aquí abajo aparece la descripción del estado que estás tocando */}
+          <div className="mt-2 pt-2 border-t border-gray-800 h-[45px] flex flex-col justify-center">
+            {hoveredMenuCond ? (
+              <div className="animate-fade-in text-left">
+                <span className="text-yellow-500 font-bold text-[10px] uppercase block leading-none">
+                  {hoveredMenuCond.label} {hoveredMenuCond.icon}
+                </span>
+                <span className="text-[9px] text-gray-300 italic mt-1 block leading-tight">
+                  {hoveredMenuCond.desc}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[9px] text-gray-600 italic text-center block">
+                Pasa el ratón por un estado para ver sus efectos.
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -447,9 +477,8 @@ const CombatTracker = ({
   };
 
   return (
-    // ESTRUCTURA ANTI-SCROLL: h-full flex flex-col (Sin relative ni overflow raro)
     <div className="h-full flex flex-col p-4 bg-transparent">
-      {/* HEADER (No se encoge) */}
+      {/* HEADER */}
       <div className="flex-none flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-red-400 flex items-center gap-1 tracking-wide">
@@ -478,7 +507,7 @@ const CombatTracker = ({
         </div>
       </div>
 
-      {/* FORMULARIO (No se encoge) */}
+      {/* FORMULARIO */}
       <form onSubmit={handleSubmit} className="flex-none flex gap-2 mb-4">
         <input
           type="text"
@@ -502,7 +531,7 @@ const CombatTracker = ({
         </button>
       </form>
 
-      {/* LISTA (Esta es la que hace SCROLL. Con min-h-0 le decimos que no desborde la pantalla) */}
+      {/* LISTA */}
       <div className="flex-grow overflow-y-auto custom-scrollbar px-2 pt-4 pb-2 space-y-2 min-h-0">
         {combatants.map((c, index) => (
           <CombatantRow
@@ -520,7 +549,7 @@ const CombatTracker = ({
         ))}
       </div>
 
-      {/* FOOTER (Fijo abajo, pero DENTRO del layout, sin romper la página) */}
+      {/* FOOTER */}
       <div className="flex-none flex gap-3 mt-4 pt-2 border-t border-gray-800">
         {confirmClearAll ? (
           <button
