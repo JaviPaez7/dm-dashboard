@@ -23,6 +23,10 @@ body {
     radial-gradient(circle at 50% 0%, #1f2937 0%, transparent 70%),
     radial-gradient(circle at 80% 80%, #1a1a1a 0%, transparent 50%);
   background-attachment: fixed;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden !important;
 }
 
 /* Títulos con fuente de fantasía */
