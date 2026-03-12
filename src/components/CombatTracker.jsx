@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
-// Lista de condiciones (Iconos)
+// (Las constantes CONDITIONS y el componente CombatantRow se mantienen igual que antes)
+// ... [Pego aquí el código completo para que no te falte nada] ...
+
 const CONDITIONS = [
   { label: "Blind", icon: "👁️‍🗨️" },
   { label: "Charmed", icon: "😍" },
@@ -18,7 +20,6 @@ const CONDITIONS = [
   { label: "Unconsc", icon: "💤" },
 ];
 
-// --- SUB-COMPONENTE: Fila Individual ---
 const CombatantRow = ({
   combatant,
   onRemove,
@@ -28,40 +29,58 @@ const CombatantRow = ({
   onUpdateStats,
   onUpdateDeathSaves,
   onViewStatBlock,
-  onUpdateInitiative, // <--- NUEVO: Recibimos la función
+  onUpdateInitiative,
 }) => {
   const [delta, setDelta] = useState("");
   const [showConditions, setShowConditions] = useState(false);
+  const [editingField, setEditingField] = useState(null);
+  const [editValue, setEditValue] = useState("");
 
-  // Manejar Daño/Cura
-  const handleDelta = (multiplier) => {
-    const amount = delta === "" ? 1 : parseInt(delta);
+  const intervalRef = useRef(null);
+  const deltaRef = useRef(delta);
+  useEffect(() => {
+    deltaRef.current = delta;
+  }, [delta]);
+
+  const startDelta = (multiplier) => {
+    const amount = deltaRef.current === "" ? 1 : parseInt(deltaRef.current);
     if (isNaN(amount)) return;
     onUpdateHP(combatant.id, amount * multiplier);
+    intervalRef.current = setInterval(() => {
+      onUpdateHP(combatant.id, amount * multiplier);
+    }, 150);
+  };
+
+  const stopDelta = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setDelta("");
   };
 
   const hpPercent = (combatant.hp / combatant.maxHp) * 100;
 
-  const handleEditStat = (field, currentValue) => {
-    const newValue = prompt(
-      `Nuevo valor para ${field === "ac" ? "AC" : "Max HP"}:`,
-      currentValue,
-    );
-    if (newValue !== null && !isNaN(newValue) && newValue !== "") {
-      onUpdateStats(combatant.id, field, newValue);
-    }
+  const startEditing = (field, currentValue) => {
+    setEditingField(field);
+    setEditValue(currentValue);
   };
 
-  // --- NUEVO: Editar Iniciativa ---
-  const handleEditInitiative = () => {
-    const newInit = prompt(
-      `Nueva iniciativa para ${combatant.name}:`,
-      combatant.initiative,
-    );
-    if (newInit !== null && !isNaN(newInit) && newInit !== "") {
-      onUpdateInitiative(combatant.id, parseInt(newInit));
+  const saveEdit = () => {
+    if (editValue !== "" && !isNaN(editValue)) {
+      const val = parseInt(editValue);
+      if (editingField === "ac" || editingField === "maxHp") {
+        onUpdateStats(combatant.id, editingField, val);
+      } else if (editingField === "initiative") {
+        onUpdateInitiative(combatant.id, val);
+      }
     }
+    setEditingField(null);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") saveEdit();
+    if (e.key === "Escape") setEditingField(null);
   };
 
   const activeStyle = isActive
@@ -76,10 +95,7 @@ const CombatantRow = ({
           onClick={() =>
             onUpdateDeathSaves(combatant.id, type, i === count ? i - 1 : i)
           }
-          className={`w-3 h-3 rounded-full border border-gray-500 cursor-pointer ${
-            i <= count ? color : "bg-gray-800"
-          } hover:scale-125 transition-transform`}
-          title={`Marcar ${i}`}
+          className={`w-3 h-3 rounded-full border border-gray-500 cursor-pointer ${i <= count ? color : "bg-gray-800"} hover:scale-125 transition-transform`}
         ></div>
       ))}
     </div>
@@ -96,22 +112,33 @@ const CombatantRow = ({
       )}
 
       <div className="flex justify-between items-start gap-2">
-        {/* IZQUIERDA: Datos del Personaje */}
         <div className="flex items-center gap-3 flex-grow min-w-0">
-          {/* --- NUEVO: Bloque de Iniciativa Clicable --- */}
-          <div
-            onClick={handleEditInitiative}
-            className="flex flex-col items-center min-w-[36px] cursor-pointer hover:bg-gray-600 p-1 rounded transition-colors border border-transparent hover:border-yellow-500/50"
-            title="Editar Iniciativa"
-          >
-            <span
-              className={`font-bold text-xl leading-none ${isActive ? "text-yellow-400" : "text-gray-500"}`}
-            >
-              {combatant.initiative}
-            </span>
-            <span className="text-[8px] text-gray-500 uppercase mt-0.5 font-bold">
-              Init
-            </span>
+          <div className="flex flex-col items-center min-w-[36px] cursor-pointer hover:bg-gray-600 p-1 rounded transition-colors">
+            {editingField === "initiative" ? (
+              <input
+                autoFocus
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={saveEdit}
+                onKeyDown={handleKeyDown}
+                className="w-10 bg-gray-900 text-yellow-400 font-bold text-center rounded focus:outline-none"
+              />
+            ) : (
+              <div
+                onClick={() => startEditing("initiative", combatant.initiative)}
+                className="flex flex-col items-center w-full"
+              >
+                <span
+                  className={`font-bold text-xl leading-none ${isActive ? "text-yellow-400" : "text-gray-500"}`}
+                >
+                  {combatant.initiative}
+                </span>
+                <span className="text-[8px] text-gray-500 uppercase mt-0.5 font-bold">
+                  Init
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex-grow min-w-0">
@@ -121,39 +148,45 @@ const CombatantRow = ({
               >
                 {combatant.name}
               </span>
-
               {combatant.apiIndex && (
                 <button
                   onClick={() =>
                     onViewStatBlock(combatant.apiIndex, combatant.localData)
                   }
                   className="text-gray-400 hover:text-yellow-400 transition-colors mx-2"
-                  title="Ver Ficha de Monstruo"
                 >
                   👁️
                 </button>
               )}
-
               <div
-                onClick={() => handleEditStat("ac", combatant.ac || 10)}
-                className="flex items-center gap-1 bg-gray-900/60 px-2 py-0.5 rounded cursor-pointer hover:bg-gray-600 border border-gray-700 group transition-colors"
-                title="Editar AC"
+                className="flex items-center gap-1 bg-gray-900/60 px-2 py-0.5 rounded cursor-pointer hover:bg-gray-600 border border-gray-700"
+                onClick={() => startEditing("ac", combatant.ac)}
               >
                 <span className="text-xs">🛡️</span>
-                <span className="text-xs font-bold text-blue-300 group-hover:text-white">
-                  {combatant.ac || 10}
-                </span>
+                {editingField === "ac" ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={handleKeyDown}
+                    className="w-8 bg-gray-800 text-blue-300 text-center rounded text-xs"
+                  />
+                ) : (
+                  <span className="text-xs font-bold text-blue-300">
+                    {combatant.ac || 10}
+                  </span>
+                )}
               </div>
-
               <button
                 onClick={() => setShowConditions(!showConditions)}
-                className="text-xs text-gray-500 hover:text-white px-1 border border-gray-700 rounded hover:bg-gray-600 transition-colors"
+                className="text-xs text-gray-500 hover:text-white px-1 border border-gray-700 rounded"
               >
                 +FX
               </button>
             </div>
 
-            {/* LÓGICA DE VIDA vs MUERTE */}
             {combatant.hp > 0 ? (
               <div className="w-full h-1.5 bg-gray-900 rounded-full mt-1 overflow-hidden">
                 <div
@@ -164,8 +197,8 @@ const CombatantRow = ({
             ) : (
               <div className="mt-1 flex items-center justify-between bg-gray-900/80 p-1.5 rounded border border-red-900/50">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-green-500 uppercase font-bold tracking-wider">
-                    Éxito
+                  <span className="text-[9px] text-green-500 font-bold">
+                    ÉXITO
                   </span>
                   <DeathSaveSelector
                     type="success"
@@ -173,15 +206,14 @@ const CombatantRow = ({
                     color="bg-green-500"
                   />
                 </div>
-                <div className="w-px h-3 bg-gray-700 mx-1"></div>
                 <div className="flex items-center gap-2">
                   <DeathSaveSelector
                     type="failure"
                     count={combatant.deathSaves?.failure || 0}
                     color="bg-red-600"
                   />
-                  <span className="text-[9px] text-red-500 uppercase font-bold tracking-wider">
-                    Fallo
+                  <span className="text-[9px] text-red-500 font-bold">
+                    FALLO
                   </span>
                 </div>
               </div>
@@ -189,40 +221,46 @@ const CombatantRow = ({
 
             <div className="flex items-center gap-2 mt-1">
               <span
-                className={`text-xs ${combatant.hp === 0 ? "text-red-500 font-bold animate-pulse" : "text-gray-400"}`}
+                className={`text-xs flex items-center ${combatant.hp === 0 ? "text-red-500 font-bold animate-pulse" : "text-gray-400"}`}
               >
-                HP: {combatant.hp}{" "}
-                <span
-                  onClick={() => handleEditStat("maxHp", combatant.maxHp)}
-                  className="text-gray-600 hover:text-white cursor-pointer hover:underline"
-                  title="Editar Vida Máxima"
-                >
-                  / {combatant.maxHp}
-                </span>
+                HP: {combatant.hp} /
+                {editingField === "maxHp" ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={handleKeyDown}
+                    className="w-10 bg-gray-800 text-center rounded text-xs ml-1"
+                  />
+                ) : (
+                  <span
+                    onClick={() => startEditing("maxHp", combatant.maxHp)}
+                    className="ml-1 cursor-pointer hover:underline"
+                  >
+                    {combatant.maxHp}
+                  </span>
+                )}
               </span>
-
-              <div className="flex gap-1 flex-wrap">
-                {combatant.conditions &&
-                  combatant.conditions.map((icon, i) => (
-                    <span
-                      key={i}
-                      className="text-sm cursor-help"
-                      title="Estado activo"
-                    >
-                      {icon}
-                    </span>
-                  ))}
+              <div className="flex gap-1 flex-wrap ml-2">
+                {combatant.conditions?.map((icon, i) => (
+                  <span key={i} className="text-sm">
+                    {icon}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* DERECHA: Botones de Acción */}
         <div className="flex items-center gap-1 shrink-0 ml-2 bg-gray-900/50 p-1 rounded">
           <button
-            onClick={() => handleDelta(-1)}
-            className="w-8 h-8 flex items-center justify-center bg-red-900/40 hover:bg-red-600 text-red-200 hover:text-white rounded transition-colors font-bold text-lg"
-            title="Dañar"
+            onPointerDown={() => startDelta(-1)}
+            onPointerUp={stopDelta}
+            onPointerLeave={stopDelta}
+            className="w-8 h-8 flex items-center justify-center bg-red-900/40 hover:bg-red-600 text-red-200 rounded font-bold select-none"
+            style={{ touchAction: "none" }}
           >
             -
           </button>
@@ -231,19 +269,20 @@ const CombatantRow = ({
             value={delta}
             onChange={(e) => setDelta(e.target.value)}
             placeholder="1"
-            className="w-10 h-8 bg-gray-800 text-center text-white rounded text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 appearance-none"
+            className="w-10 h-8 bg-gray-800 text-center text-white rounded text-sm outline-none"
           />
           <button
-            onClick={() => handleDelta(1)}
-            className="w-8 h-8 flex items-center justify-center bg-green-900/40 hover:bg-green-600 text-green-200 hover:text-white rounded transition-colors font-bold text-lg"
-            title="Curar"
+            onPointerDown={() => startDelta(1)}
+            onPointerUp={stopDelta}
+            onPointerLeave={stopDelta}
+            className="w-8 h-8 flex items-center justify-center bg-green-900/40 hover:bg-green-600 text-green-200 rounded font-bold select-none"
+            style={{ touchAction: "none" }}
           >
             +
           </button>
           <button
             onClick={() => onRemove(combatant.id)}
-            className="ml-2 text-gray-600 hover:text-red-400 w-6 flex justify-center"
-            title="Eliminar"
+            className="ml-2 text-gray-600 hover:text-red-400 w-6"
           >
             ✕
           </button>
@@ -256,8 +295,7 @@ const CombatantRow = ({
             <button
               key={cond.label}
               onClick={() => onToggleCondition(combatant.id, cond.icon)}
-              className={`text-sm p-1 rounded hover:bg-gray-700 transition-colors ${combatant.conditions?.includes(cond.icon) ? "bg-blue-900 ring-1 ring-blue-500" : ""}`}
-              title={cond.label}
+              className={`text-sm p-1 rounded hover:bg-gray-700 ${combatant.conditions?.includes(cond.icon) ? "bg-blue-900 ring-1 ring-blue-500" : ""}`}
             >
               {cond.icon}
             </button>
@@ -268,7 +306,9 @@ const CombatantRow = ({
   );
 };
 
-// --- COMPONENTE PRINCIPAL ---
+// ==========================================
+// COMPONENTE PRINCIPAL (Aquí están los botones de abajo)
+// ==========================================
 const CombatTracker = ({
   combatants,
   onAdd,
@@ -284,12 +324,16 @@ const CombatTracker = ({
   onUpdateDeathSaves,
   onViewStatBlock,
   onOpenEncounterModal,
-  onUpdateInitiative, // <--- NUEVO
-  onClearMonsters, // <--- NUEVO
+  onUpdateInitiative,
+  onClearMonsters,
 }) => {
   const [name, setName] = useState("");
   const [initiative, setInitiative] = useState("");
   const [hp, setHp] = useState("");
+
+  // --- NUEVOS ESTADOS DE CONFIRMACIÓN ---
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [confirmClearMonsters, setConfirmClearMonsters] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -300,6 +344,7 @@ const CombatTracker = ({
       hp: parseInt(hp) || 10,
       maxHp: parseInt(hp) || 10,
       conditions: [],
+      isPlayer: false,
     });
     setName("");
     setInitiative("");
@@ -307,8 +352,7 @@ const CombatTracker = ({
   };
 
   return (
-    <div className="h-full flex flex-col p-4 bg-transparent">
-      {/* Cabecera */}
+    <div className="h-full flex flex-col p-4 bg-transparent relative">
       <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-red-400 flex items-center gap-2">
@@ -316,16 +360,15 @@ const CombatTracker = ({
           </h2>
           <button
             onClick={onOpenPartyModal}
-            className="bg-blue-900/50 hover:bg-blue-800 text-blue-200 text-xs px-2 py-1 rounded border border-blue-800 flex items-center gap-1 transition-colors"
+            className="bg-blue-900/50 hover:bg-blue-800 text-blue-200 text-xs px-2 py-1 rounded border border-blue-800"
           >
-            <span>🛡️</span> Grupo
+            🛡️ Grupo
           </button>
           <button
             onClick={onOpenEncounterModal}
-            className="bg-purple-900/50 hover:bg-purple-800 text-purple-200 text-xs px-2 py-1 rounded border border-purple-800 flex items-center gap-1 transition-colors"
-            title="Gestor de Encuentros"
+            className="bg-purple-900/50 hover:bg-purple-800 text-purple-200 text-xs px-2 py-1 rounded border border-purple-800"
           >
-            <span>📜</span> Encuentros
+            📜 Encuentros
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -336,31 +379,29 @@ const CombatTracker = ({
         </div>
       </div>
 
-      {/* Formulario Rápido */}
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <input
           type="text"
           placeholder="Añadir PJ/NPC..."
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="bg-gray-700 rounded px-3 py-2 w-full text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          className="bg-gray-700 rounded px-3 py-2 w-full text-white text-sm"
         />
         <input
           type="number"
           placeholder="Init"
           value={initiative}
           onChange={(e) => setInitiative(e.target.value)}
-          className="bg-gray-700 rounded px-2 py-2 w-16 text-center text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          className="bg-gray-700 rounded px-2 py-2 w-16 text-center text-white text-sm"
         />
         <button
           type="submit"
-          className="bg-green-700 hover:bg-green-600 px-4 rounded text-white font-bold text-lg leading-none transition-colors"
+          className="bg-green-700 hover:bg-green-600 px-4 rounded text-white font-bold text-lg"
         >
           +
         </button>
       </form>
 
-      {/* Lista Scrolleable */}
       <div className="flex-grow overflow-y-auto custom-scrollbar px-2 pt-4 pb-20 space-y-2">
         {combatants.map((c, index) => (
           <CombatantRow
@@ -373,37 +414,87 @@ const CombatTracker = ({
             onUpdateStats={onUpdateStats}
             onUpdateDeathSaves={onUpdateDeathSaves}
             onViewStatBlock={onViewStatBlock}
-            onUpdateInitiative={onUpdateInitiative} // <--- Pasamos la función al hijo
+            onUpdateInitiative={onUpdateInitiative}
           />
         ))}
       </div>
 
-      {/* Botonera Flotante */}
+      {/* =========================================
+          BOTONERA FLOTANTE CON CONFIRMACIONES
+          ========================================= */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-900 via-gray-900/95 to-transparent flex gap-3 z-10">
-        <button
-          onClick={onReset}
-          className="bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-300 p-3 rounded-lg border border-gray-700 transition-colors"
-          title="Eliminar A TODOS y reiniciar combate"
-        >
-          🗑️
-        </button>
+        {/* BOTÓN PAPELERA (REINICIAR TODO) */}
+        {confirmClearAll ? (
+          <button
+            onClick={() => {
+              onReset();
+              setConfirmClearAll(false);
+            }}
+            className="flex-grow bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg animate-pulse text-xs uppercase tracking-wider"
+          >
+            ⚠️ ¿BORRAR TODA LA MESA?
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              setConfirmClearAll(true);
+              setConfirmClearMonsters(false);
+            }}
+            className="bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-300 p-3 rounded-lg border border-gray-700 transition-all"
+            title="Borrar TODO"
+          >
+            🗑️
+          </button>
+        )}
 
-        {/* --- NUEVO: Botón de limpiar monstruos --- */}
-        <button
-          onClick={onClearMonsters}
-          className="bg-gray-800 hover:bg-orange-900/50 text-gray-400 hover:text-orange-300 p-3 rounded-lg border border-gray-700 transition-colors"
-          title="Limpiar Monstruos (Dejar solo a los PJs vivos)"
-        >
-          🧹
-        </button>
+        {/* BOTÓN ESCOBA (LIMPIAR MONSTRUOS) */}
+        {!confirmClearAll &&
+          (confirmClearMonsters ? (
+            <button
+              onClick={() => {
+                onClearMonsters();
+                setConfirmClearMonsters(false);
+              }}
+              className="flex-grow bg-orange-700 hover:bg-orange-600 text-white font-bold py-3 rounded-lg shadow-lg animate-pulse text-xs uppercase tracking-wider"
+            >
+              ⚠️ ¿SÓLO LOS PJs?
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setConfirmClearMonsters(true);
+                setConfirmClearAll(false);
+              }}
+              className="bg-gray-800 hover:bg-orange-900/50 text-gray-400 hover:text-orange-300 p-3 rounded-lg border border-gray-700 transition-all"
+              title="Limpiar Monstruos"
+            >
+              🧹
+            </button>
+          ))}
 
-        <button
-          onClick={onNextTurn}
-          className="flex-grow btn-gold py-3 rounded-lg flex items-center justify-center gap-2 text-lg"
-        >
-          <span>Siguiente Turno</span>
-          <span className="text-xl">⏭️</span>
-        </button>
+        {/* BOTÓN SIGUIENTE TURNO (Sólo sale si no hay confirmaciones activas) */}
+        {!confirmClearAll && !confirmClearMonsters && (
+          <button
+            onClick={onNextTurn}
+            className="flex-grow btn-gold py-3 rounded-lg flex items-center justify-center gap-2 text-lg"
+          >
+            <span>Siguiente</span>
+            <span className="text-xl">⏭️</span>
+          </button>
+        )}
+
+        {/* BOTÓN CANCELAR (Si hay algo activo) */}
+        {(confirmClearAll || confirmClearMonsters) && (
+          <button
+            onClick={() => {
+              setConfirmClearAll(false);
+              setConfirmClearMonsters(false);
+            }}
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 rounded-lg font-bold"
+          >
+            NO
+          </button>
+        )}
       </div>
     </div>
   );

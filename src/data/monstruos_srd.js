@@ -7180,7 +7180,7 @@ export const bestiarioSRD = [
   },
   {
     index: "axe-beak",
-    name: "pico de hacha",
+    name: "Pico de hacha",
     desc: "An axe beak is a tall flightless bird with strong legs and a heavy, wedge-shaped beak. It has a nasty disposition and tends to attack any unfamiliar creature that wanders too close.",
     size: "Large",
     type: "bestia",
@@ -8288,7 +8288,7 @@ export const bestiarioSRD = [
   },
   {
     index: "bearded-devil",
-    name: "diablo barbudo",
+    name: "Diablo barbudo",
     size: "Medium",
     type: "demonio",
     subtype: "devil",
@@ -8895,7 +8895,7 @@ export const bestiarioSRD = [
   },
   {
     index: "black-pudding",
-    name: "Morcilla",
+    name: "Pudin negro",
     size: "Large",
     type: "rezumar",
     alignment: "unaligned",
@@ -9324,7 +9324,7 @@ export const bestiarioSRD = [
   },
   {
     index: "boar",
-    name: "Verraco",
+    name: "Jabalí",
     size: "Medium",
     type: "bestia",
     alignment: "unaligned",
@@ -9403,7 +9403,7 @@ export const bestiarioSRD = [
   },
   {
     index: "bone-devil",
-    name: "diablo de hueso",
+    name: "Diablo de hueso",
     size: "Large",
     type: "demonio",
     subtype: "devil",
@@ -10105,7 +10105,7 @@ export const bestiarioSRD = [
   },
   {
     index: "bulette",
-    name: "bulette",
+    name: "Bulette",
     size: "Large",
     type: "monstruosidad",
     alignment: "unaligned",
@@ -10479,7 +10479,7 @@ export const bestiarioSRD = [
   },
   {
     index: "chain-devil",
-    name: "Diablo de cadena",
+    name: "Diablo de las cadenas",
     size: "Medium",
     type: "demonio",
     subtype: "devil",
@@ -13104,7 +13104,7 @@ export const bestiarioSRD = [
   },
   {
     index: "djinni",
-    name: "genio",
+    name: "Djinn",
     size: "Large",
     type: "elemental",
     alignment: "chaotic good",
@@ -13367,7 +13367,7 @@ export const bestiarioSRD = [
   },
   {
     index: "doppelganger",
-    name: "doble",
+    name: "Doble",
     size: "Medium",
     type: "monstruosidad",
     subtype: "shapechanger",
@@ -14099,7 +14099,7 @@ export const bestiarioSRD = [
   },
   {
     index: "drow",
-    name: "drow",
+    name: "Drow",
     size: "Medium",
     type: "humanoide",
     subtype: "elf",
@@ -14247,7 +14247,7 @@ export const bestiarioSRD = [
   },
   {
     index: "druid",
-    name: "druida",
+    name: "Druida",
     desc: "**Druids** dwell in forests and other secluded wilderness locations, where they protect the natural world from monsters and the encroachment of civilization. Some are **tribal shamans** who heal the sick, pray to animal spirits, and provide spiritual guidance.",
     size: "Medium",
     type: "humanoide",
@@ -16922,7 +16922,7 @@ export const bestiarioSRD = [
   },
   {
     index: "ghast",
-    name: "fantasmal",
+    name: "Necrario",
     size: "Medium",
     type: "muertos vivientes",
     alignment: "chaotic evil",
@@ -17270,7 +17270,7 @@ export const bestiarioSRD = [
   },
   {
     index: "giant-ape",
-    name: "simio gigante",
+    name: "Simio gigante",
     size: "Huge",
     type: "bestia",
     alignment: "unaligned",
@@ -17601,7 +17601,7 @@ export const bestiarioSRD = [
   },
   {
     index: "giant-centipede",
-    name: "ciempiés gigante",
+    name: "Ciempiés gigante",
     size: "Small",
     type: "bestia",
     alignment: "unaligned",
@@ -18168,7 +18168,7 @@ export const bestiarioSRD = [
   },
   {
     index: "giant-frog",
-    name: "rana gigante",
+    name: "Rana gigante",
     size: "Medium",
     type: "bestia",
     alignment: "unaligned",
@@ -19395,7 +19395,7 @@ export const bestiarioSRD = [
   },
   {
     index: "giant-weasel",
-    name: "comadreja gigante",
+    name: "Comadreja gigante",
     size: "Medium",
     type: "bestia",
     alignment: "unaligned",
@@ -21135,7 +21135,7 @@ export const bestiarioSRD = [
   },
   {
     index: "grick",
-    name: "grick",
+    name: "Grick",
     size: "Medium",
     type: "monstruosidad",
     alignment: "neutral",
@@ -21765,7 +21765,7 @@ export const bestiarioSRD = [
   },
   {
     index: "gynosphinx",
-    name: "ginosfinge",
+    name: "Ginosfinge",
     size: "Large",
     type: "monstruosidad",
     alignment: "lawful neutral",
@@ -22328,7 +22328,7 @@ export const bestiarioSRD = [
   },
   {
     index: "hell-hound",
-    name: "Perro del infierno",
+    name: "Sabueso Infernal",
     size: "Medium",
     type: "demonio",
     alignment: "lawful evil",
@@ -22962,7 +22962,7 @@ export const bestiarioSRD = [
   },
   {
     index: "horned-devil",
-    name: "diablo cornudo",
+    name: "Diablo cornudo",
     size: "Large",
     type: "demonio",
     subtype: "devil",
@@ -23415,7 +23415,7 @@ export const bestiarioSRD = [
   },
   {
     index: "ice-devil",
-    name: "diablo de hielo",
+    name: "Diablo de hielo",
     size: "Large",
     type: "demonio",
     subtype: "devil",
@@ -23890,7 +23890,7 @@ export const bestiarioSRD = [
   },
   {
     index: "invisible-stalker",
-    name: "Acosador invisible",
+    name: "Acosador Invisible",
     size: "Medium",
     type: "elemental",
     alignment: "neutral",
@@ -25962,7 +25962,7 @@ export const bestiarioSRD = [
   },
   {
     index: "mage",
-    name: "mago",
+    name: "Mago",
     desc: "Mages spend their lives in the study and practice of magic. Good-aligned mages offer counsel to nobles and others in power, while evil mages dwell in isolated sites to perform unspeakable experiments without interference.",
     size: "Medium",
     type: "humanoide",
@@ -26493,7 +26493,7 @@ export const bestiarioSRD = [
   },
   {
     index: "manticore",
-    name: "mantícora",
+    name: "Mantícora",
     size: "Large",
     type: "monstruosidad",
     alignment: "lawful evil",
@@ -27038,7 +27038,7 @@ export const bestiarioSRD = [
   },
   {
     index: "merfolk",
-    name: "tritones",
+    name: "Tritones",
     size: "Medium",
     type: "humanoide",
     subtype: "merfolk",
@@ -27131,7 +27131,7 @@ export const bestiarioSRD = [
   },
   {
     index: "merrow",
-    name: "merrow",
+    name: "Merrow",
     size: "Large",
     type: "monstruosidad",
     alignment: "chaotic evil",
@@ -27289,7 +27289,7 @@ export const bestiarioSRD = [
   },
   {
     index: "mimic",
-    name: "Imitar",
+    name: "Mimeto",
     size: "Medium",
     type: "monstruosidad",
     subtype: "shapechanger",
@@ -27781,7 +27781,7 @@ export const bestiarioSRD = [
   },
   {
     index: "mummy-lord",
-    name: "Señor momia",
+    name: "Mummy Lord",
     size: "Medium",
     type: "muertos vivientes",
     alignment: "lawful evil",
@@ -28630,7 +28630,7 @@ export const bestiarioSRD = [
   },
   {
     index: "ochre-jelly",
-    name: "Jalea Ocre",
+    name: "Jelly Ocre",
     size: "Large",
     type: "rezumar",
     alignment: "unaligned",
@@ -29558,7 +29558,7 @@ export const bestiarioSRD = [
   },
   {
     index: "owlbear",
-    name: "oso búho",
+    name: "Oso búho",
     size: "Large",
     type: "monstruosidad",
     alignment: "unaligned",
@@ -29939,7 +29939,7 @@ export const bestiarioSRD = [
   },
   {
     index: "pit-fiend",
-    name: "Demonio del pozo",
+    name: "Demonio Abisal",
     size: "Large",
     type: "demonio",
     subtype: "devil",
@@ -30421,7 +30421,7 @@ export const bestiarioSRD = [
   },
   {
     index: "plesiosaurus",
-    name: "plesiosaurio",
+    name: "Plesiosaurio",
     size: "Large",
     type: "bestia",
     alignment: "unaligned",
@@ -30500,7 +30500,7 @@ export const bestiarioSRD = [
   },
   {
     index: "poisonous-snake",
-    name: "serpiente venenosa",
+    name: "Serpiente venenosa",
     size: "Tiny",
     type: "bestia",
     alignment: "unaligned",
@@ -31275,7 +31275,7 @@ export const bestiarioSRD = [
   },
   {
     index: "rakshasa",
-    name: "rákshasa",
+    name: "Rakshasa",
     size: "Medium",
     type: "demonio",
     alignment: "lawful evil",
@@ -32189,7 +32189,7 @@ export const bestiarioSRD = [
   },
   {
     index: "roper",
-    name: "cuerda",
+    name: "Roper",
     size: "Large",
     type: "monstruosidad",
     alignment: "neutral evil",
@@ -32308,7 +32308,7 @@ export const bestiarioSRD = [
   },
   {
     index: "rug-of-smothering",
-    name: "Alfombra de asfixia",
+    name: "Alfombra de Asfixia",
     size: "Large",
     type: "construir",
     alignment: "unaligned",
@@ -33230,7 +33230,7 @@ export const bestiarioSRD = [
   },
   {
     index: "sea-hag",
-    name: "Bruja del mar",
+    name: "Bruja marina",
     size: "Medium",
     type: "vidente",
     alignment: "chaotic evil",
@@ -33485,7 +33485,7 @@ export const bestiarioSRD = [
   },
   {
     index: "shambling-mound",
-    name: "Montículo tambaleante",
+    name: "Montículo Ambulante",
     size: "Large",
     type: "planta",
     alignment: "unaligned",
@@ -34531,7 +34531,7 @@ export const bestiarioSRD = [
   },
   {
     index: "spirit-naga",
-    name: "espíritu naga",
+    name: "Espíritu naga",
     size: "Large",
     type: "monstruosidad",
     alignment: "chaotic evil",
@@ -35130,7 +35130,7 @@ export const bestiarioSRD = [
   },
   {
     index: "stirge",
-    name: "estirge",
+    name: "Estirge",
     size: "Tiny",
     type: "bestia",
     alignment: "unaligned",
@@ -37528,7 +37528,7 @@ export const bestiarioSRD = [
   },
   {
     index: "tribal-warrior",
-    name: "guerrero tribal",
+    name: "Guerrero Tribal",
     desc: "Tribal warriors live beyond civilization, most often subsisting on fishing and hunting. Each tribe acts in accordance with the wishes of its chief, who is the greatest or oldest warrior of the tribe or a tribe member blessed by the gods.",
     size: "Medium",
     type: "humanoide",
@@ -38687,7 +38687,7 @@ export const bestiarioSRD = [
   },
   {
     index: "vampire-spawn",
-    name: "Engendro de vampiro",
+    name: "Vampire Spawn",
     size: "Medium",
     type: "muertos vivientes",
     alignment: "neutral evil",
@@ -41814,7 +41814,7 @@ export const bestiarioSRD = [
   },
   {
     index: "wight",
-    name: "peso",
+    name: "Tumulario",
     size: "Medium",
     type: "muertos vivientes",
     alignment: "neutral evil",
@@ -42142,7 +42142,7 @@ export const bestiarioSRD = [
   },
   {
     index: "winter-wolf",
-    name: "lobo de invierno",
+    name: "Lobo Invernal",
     desc: "The arctic-dwelling winter wolf is as large as a dire wolf but has snow-white fur and pale blue eyes. Frost giants use these evil creatures as guards and hunting companions, putting the wolves’ deadly breath weapon to use against their foes. Winter wolves communicate with one another using growls and barks, but they speak Common and Giant well enough to follow simple conversations.",
     size: "Large",
     type: "monstruosidad",
@@ -42414,7 +42414,7 @@ export const bestiarioSRD = [
   },
   {
     index: "wraith",
-    name: "Fantasma",
+    name: "Wraith",
     size: "Medium",
     type: "muertos vivientes",
     alignment: "neutral evil",
@@ -42535,7 +42535,7 @@ export const bestiarioSRD = [
   },
   {
     index: "wyvern",
-    name: "wyvern",
+    name: "Wyvern",
     size: "Large",
     type: "dragón",
     alignment: "unaligned",
@@ -42696,7 +42696,7 @@ export const bestiarioSRD = [
   },
   {
     index: "xorn",
-    name: "xorn",
+    name: "Xorn",
     size: "Medium",
     type: "elemental",
     alignment: "neutral",

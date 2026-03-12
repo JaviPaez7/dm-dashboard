@@ -65,9 +65,9 @@ function App() {
 
   // 2. Función para borrar solo a los monstruos (los que vienen del bestiario)
   const clearMonsters = () => {
-    // Asumimos que los monstruos tienen "apiIndex" (porque vienen del bestiario)
+    // Asumimos que los  monstruos tienen "apiIndex" (porque vienen del bestiario)
     // y los jugadores no. Así que nos quedamos solo con los que NO tienen apiIndex.
-    setCombatants((prev) => prev.filter((c) => !c.apiIndex));
+    setCombatants((prev) => prev.filter((c) => c.isPlayer === true));
 
     // Opcional: Reiniciar el turno a 0 y la ronda a 1 para el próximo combate
     setCurrentTurnIndex(0);
@@ -98,12 +98,7 @@ function App() {
     );
   };
 
-  const handleLongRest = () => {
-    if (
-      window.confirm(
-        "¿Hacer un Descanso Largo? Esto curará a todo el grupo al máximo.",
-      )
-    ) {
+  const handleLongRest = () => { {
       // 1. Curamos en la base de datos de la Party
       setParty((prevParty) => prevParty.map((p) => ({ ...p, hp: p.maxHp })));
 
@@ -159,7 +154,7 @@ function App() {
     }
   };
   const resetEncounter = () => {
-    if (confirm("¿Limpiar mesa?")) {
+    {
       setCombatants([]);
       setRoundCount(1);
       setCurrentTurnIndex(0);
@@ -193,6 +188,7 @@ function App() {
       ac: finalAc,
       conditions: [],
       deathSaves: { success: 0, failure: 0 },
+      isPlayer: false, // <--- AÑADIDO: La marca para que la escoba lo detecte
     });
   };
 
@@ -212,14 +208,23 @@ function App() {
     });
   };
   const deletePartyMember = (id) => setParty(party.filter((p) => p.id !== id));
-  const addPartyMemberToCombat = (m) => {
-    const initStr = prompt(`Iniciativa para ${m.name}:`, "0");
-    if (initStr === null) return;
-    addCombatant({
-      ...m,
-      initiative: parseInt(initStr) || 0,
-      conditions: [],
-      id: Date.now(),
+  const addPartyMemberToCombat = (member) => {
+    // Ya NO pedimos prompt aquí.
+    // 'member' ya trae la iniciativa y el ID desde el PartyModal.
+
+    setCombatants((prev) => {
+      // Añadimos el nuevo combatiente
+      const updated = [
+        ...prev,
+        {
+          ...member,
+          conditions: member.conditions || [], // Por si acaso no los trae
+          deathSaves: { success: 0, failure: 0 }, // Inicializamos salvaciones
+        },
+      ];
+
+      // Ordenamos la lista por iniciativa (de mayor a menor)
+      return updated.sort((a, b) => b.initiative - a.initiative);
     });
   };
   const addMultipleCombatants = (squad) =>
@@ -235,23 +240,15 @@ function App() {
 
   // Cargar encuentro guardado
   const loadEncounter = (savedMonsters) => {
-    if (!confirm("¿Cargar este encuentro? (Se añadirán a la mesa actual)"))
-      return;
+    // Ya NO hay confirm() aquí porque el modal tiene su propio botón de "¡A la batalla!"
 
     const newCombatants = savedMonsters.map((m) => {
-      // Recalculamos iniciativa para que no sea siempre la misma
-      const dex = m.isLocal
-        ? m.localData?.stats?.dex
-        : m.localData?.dexterity || 10;
-      const safeDex = dex || 10;
-      const dexMod = Math.floor((safeDex - 10) / 2);
-      const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
-
       return {
         ...m,
-        id: Date.now() + Math.random(), // ID único nuevo
-        initiative: rolledInit,
-        hp: m.maxHp, // Aseguramos vida llena
+        // Eliminamos el recalcular iniciativa.
+        // Usamos la que ya trae desde la cajita del EncounterModal.
+        isPlayer: false, // <--- LA CLAVE PARA LA ESCOBA
+        hp: m.maxHp, // Aseguramos vida llena al entrar
       };
     });
 
