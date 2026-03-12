@@ -1,4 +1,4 @@
-# ⚔️ DM Dashboard: Yeminai Edition
+# ⚔️ DM Command Center
 
 ¡Bienvenido al **Command Center** definitivo para Dungeon Masters de D&D 5e! Esta es una aplicación web construida con **React** y **Tailwind CSS**, diseñada para agilizar las sesiones de juego y que el DM solo tenga que preocuparse de la narrativa (y de no matar a todos los PJs... o sí).
 
@@ -42,7 +42,7 @@
 ---
 
 ## 🖼️ Vista Previa
-![Vista previa de la Lista de Tareas](./public/preview.png)
+![Vista Previa de la Herramienta](src/assets/preview.png)
 
 ---
 
