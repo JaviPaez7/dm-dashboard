@@ -42,7 +42,7 @@
 ---
 
 ## 🖼️ Vista Previa
-![Vista previa de la Lista de Tareas](/preview.png)
+![Vista previa de la Lista de Tareas](./public/preview.png)
 
 ---
 
