@@ -14,22 +14,25 @@
 }
 
 /* Estilos Globales */
-body {
+html, body, #root {
   background-color: var(--color-dungeon-dark);
   color: #e2e8f0;
   font-family: var(--font-body);
-  /* Un fondo con textura sutil (opcional) */
   background-image: 
     radial-gradient(circle at 50% 0%, #1f2937 0%, transparent 70%),
     radial-gradient(circle at 80% 80%, #1a1a1a 0%, transparent 50%);
   background-attachment: fixed;
+  
   margin: 0;
   padding: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-  overflow-y: auto;
+  width: 100%;
+  
+  /* Esto adapta la altura real incluyendo la barra de direcciones del móvil */
+  height: 100dvh; 
+  
+  /* Bloqueamos cualquier tipo de scroll externo en todos los dispositivos */
+  overflow: hidden !important; 
 }
-
 /* ESCRITORIO: Bloqueamos el scroll solo en pantallas grandes (Desktop) */
 @media (min-width: 1024px) {
   html, body, #root {

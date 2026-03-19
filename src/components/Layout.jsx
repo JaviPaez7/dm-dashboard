@@ -70,7 +70,7 @@ const Layout = ({ children, mobileView, setMobileView }) => {
       </main>
 
       {/* --- BOTTOM NAVIGATION BAR (SÓLO MÓVIL) --- */}
-      <nav className="lg:hidden absolute bottom-0 w-full h-[70px] bg-gray-900 border-t-2 border-yellow-700/30 z-40">
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full h-[70px] bg-gray-900 border-t-2 border-yellow-700/30 z-40">
         <div className="flex justify-around items-center h-full px-2">
           <button onClick={() => setMobileView("combat")} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${mobileView === "combat" ? "text-red-400" : "text-gray-500 hover:text-gray-300"}`}>
             <span className="text-xl mb-1">⚔️</span>
