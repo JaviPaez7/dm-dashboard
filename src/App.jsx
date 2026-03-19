@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
 import Layout from "./components/Layout";
 import CombatTracker from "./components/CombatTracker";
@@ -11,7 +12,7 @@ import Notepad from "./components/Notepad";
 import EncounterModal from "./components/EncounterModal";
 
 function App() {
-  // --- 1. ESTADOS BASE ---
+  // --- ESTADOS BASE (Sin cambios) ---
   const [combatants, setCombatants] = useState(() => {
     const saved = localStorage.getItem("dm_dashboard_combatants");
     return saved ? JSON.parse(saved) : [];
@@ -25,16 +26,20 @@ function App() {
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [roundCount, setRoundCount] = useState(1);
 
-  // --- 2. ESTADOS DE PESTAÑAS ---
+  // --- ESTADOS DE PESTAÑAS INTERNAS ---
   const [activeTab, setActiveTab] = useState("monsters");
   const [activeRightTab, setActiveRightTab] = useState("dice");
 
-  // --- 3. ESTADO DEL VISOR DE FICHAS (EL OJO) ---
+  // --- NUEVO: ESTADO DE NAVEGACIÓN MÓVIL ---
+  // "combat" | "search" | "tools"
+  const [mobileView, setMobileView] = useState("combat");
+
+  // --- ESTADO DEL VISOR ---
   const [viewingMonsterIndex, setViewingMonsterIndex] = useState(null);
   const [viewingMonsterData, setViewingMonsterData] = useState(null);
-
   const [isEncounterModalOpen, setIsEncounterModalOpen] = useState(false);
-  // --- PERSISTENCIA ---
+
+  // --- PERSISTENCIA (Sin cambios) ---
   useEffect(() => {
     localStorage.setItem("dm_dashboard_combatants", JSON.stringify(combatants));
   }, [combatants]);
@@ -42,7 +47,7 @@ function App() {
     localStorage.setItem("dm_dashboard_party", JSON.stringify(party));
   }, [party]);
 
-  // --- FUNCIONES DE COMBATE ---
+  // --- TODAS TUS FUNCIONES DE COMBATE (Sin cambios) ---
   const addCombatant = (newCombatant) => {
     setCombatants((prev) =>
       [...prev, { ...newCombatant, id: Date.now() }].sort(
@@ -50,40 +55,26 @@ function App() {
       ),
     );
   };
-
-  // 1. Función para actualizar la iniciativa y reordenar la lista
   const updateInitiative = (id, newInitiative) => {
     setCombatants((prev) => {
-      // Actualizamos la iniciativa del personaje tocado
       const updated = prev.map((c) =>
         c.id === id ? { ...c, initiative: newInitiative } : c,
       );
-      // Y volvemos a ordenar la lista de mayor a menor
       return updated.sort((a, b) => b.initiative - a.initiative);
     });
   };
-
-  // 2. Función para borrar solo a los monstruos (los que vienen del bestiario)
   const clearMonsters = () => {
-    // Asumimos que los  monstruos tienen "apiIndex" (porque vienen del bestiario)
-    // y los jugadores no. Así que nos quedamos solo con los que NO tienen apiIndex.
     setCombatants((prev) => prev.filter((c) => c.isPlayer === true));
-
-    // Opcional: Reiniciar el turno a 0 y la ronda a 1 para el próximo combate
     setCurrentTurnIndex(0);
     setRoundCount(1);
   };
-
   const removeCombatant = (id) =>
     setCombatants((prev) => prev.filter((c) => c.id !== id));
-
   const updateHP = (id, amount) => {
     setCombatants((prev) =>
       prev.map((c) => {
         if (c.id === id) {
-          // CORREGIDO: Quitamos el Math.min para permitir Vida Temporal
           const newHp = Math.max(0, c.hp + amount);
-
           if (c.isPlayer) {
             setParty((prevParty) =>
               prevParty.map((p) =>
@@ -97,23 +88,16 @@ function App() {
       }),
     );
   };
-
-  const handleLongRest = () => { {
-      // 1. Curamos en la base de datos de la Party
-      setParty((prevParty) => prevParty.map((p) => ({ ...p, hp: p.maxHp })));
-
-      // 2. Si casualmente están en el Tracker de combate ahora mismo, los curamos ahí también
-      setCombatants((prev) =>
-        prev.map((c) => (c.isPlayer ? { ...c, hp: c.maxHp } : c)),
-      );
-    }
+  const handleLongRest = () => {
+    setParty((prevParty) => prevParty.map((p) => ({ ...p, hp: p.maxHp })));
+    setCombatants((prev) =>
+      prev.map((c) => (c.isPlayer ? { ...c, hp: c.maxHp } : c)),
+    );
   };
-
   const updateCombatantStats = (id, field, value) =>
     setCombatants((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: parseInt(value) } : c)),
     );
-
   const updateDeathSaves = (id, type, value) =>
     setCombatants((prev) =>
       prev.map((c) =>
@@ -128,7 +112,6 @@ function App() {
           : c,
       ),
     );
-
   const toggleCondition = (id, icon) => {
     setCombatants((prev) =>
       prev.map((c) => {
@@ -143,7 +126,6 @@ function App() {
       }),
     );
   };
-
   const nextTurn = () => {
     if (combatants.length === 0) return;
     if (currentTurnIndex >= combatants.length - 1) {
@@ -154,26 +136,19 @@ function App() {
     }
   };
   const resetEncounter = () => {
-    {
-      setCombatants([]);
-      setRoundCount(1);
-      setCurrentTurnIndex(0);
-    }
+    setCombatants([]);
+    setRoundCount(1);
+    setCurrentTurnIndex(0);
   };
-
-  // --- LÓGICA INTELIGENTE DE MONSTRUOS ---
   const addMonsterToCombat = (incomingData) => {
     const data = incomingData.data || incomingData;
     const isLocal = !!data.stats;
-
     const dex = isLocal ? data.stats?.dex : data.dexterity;
     const hp = isLocal ? data.hp : data.hit_points;
     const ac = isLocal ? data.ac : data.armor_class?.[0]?.value;
-
     const safeDex = dex || 10;
     const finalHp = hp || 10;
     const finalAc = ac || 10;
-
     const dexMod = Math.floor((safeDex - 10) / 2);
     const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
 
@@ -188,42 +163,30 @@ function App() {
       ac: finalAc,
       conditions: [],
       deathSaves: { success: 0, failure: 0 },
-      isPlayer: false, // <--- AÑADIDO: La marca para que la escoba lo detecte
+      isPlayer: false,
     });
   };
-
-  // --- FUNCIONES DE GRUPO ---
   const savePartyMember = (newMember) => {
     setParty((prev) => {
-      // ¿Ya existe este ID en la party?
       const exists = prev.find((p) => p.id === newMember.id);
-
       if (exists) {
-        // Si existe, lo actualizamos
         return prev.map((p) => (p.id === newMember.id ? newMember : p));
       } else {
-        // Si no existe, lo añadimos al final
         return [...prev, newMember];
       }
     });
   };
   const deletePartyMember = (id) => setParty(party.filter((p) => p.id !== id));
   const addPartyMemberToCombat = (member) => {
-    // Ya NO pedimos prompt aquí.
-    // 'member' ya trae la iniciativa y el ID desde el PartyModal.
-
     setCombatants((prev) => {
-      // Añadimos el nuevo combatiente
       const updated = [
         ...prev,
         {
           ...member,
-          conditions: member.conditions || [], // Por si acaso no los trae
-          deathSaves: { success: 0, failure: 0 }, // Inicializamos salvaciones
+          conditions: member.conditions || [],
+          deathSaves: { success: 0, failure: 0 },
         },
       ];
-
-      // Ordenamos la lista por iniciativa (de mayor a menor)
       return updated.sort((a, b) => b.initiative - a.initiative);
     });
   };
@@ -231,35 +194,28 @@ function App() {
     setCombatants((prev) =>
       [...prev, ...squad].sort((a, b) => b.initiative - a.initiative),
     );
-
-  // --- FUNCIÓN DEL VISOR (¡ESTE ERA EL CABLE QUE FALTABA CONECTAR!) ---
   const handleViewStatBlock = (index, data = null) => {
     setViewingMonsterIndex(index);
     setViewingMonsterData(data);
   };
-
-  // Cargar encuentro guardado
   const loadEncounter = (savedMonsters) => {
-    // Ya NO hay confirm() aquí porque el modal tiene su propio botón de "¡A la batalla!"
-
     const newCombatants = savedMonsters.map((m) => {
       return {
         ...m,
-        // Eliminamos el recalcular iniciativa.
-        // Usamos la que ya trae desde la cajita del EncounterModal.
-        isPlayer: false, // <--- LA CLAVE PARA LA ESCOBA
-        hp: m.maxHp, // Aseguramos vida llena al entrar
+        isPlayer: false,
+        hp: m.maxHp, 
       };
     });
-
     setCombatants((prev) =>
       [...prev, ...newCombatants].sort((a, b) => b.initiative - a.initiative),
     );
   };
 
   return (
-    <Layout>
-      {/* --- COLUMNA 1: IZQUIERDA (COMBATE) --- */}
+    // Pasamos el estado de la vista móvil y el setter al Layout
+    <Layout mobileView={mobileView} setMobileView={setMobileView}>
+      
+      {/* --- HIJO 1: COLUMNA IZQUIERDA (COMBATE) --- */}
       <CombatTracker
         combatants={combatants}
         onAdd={addCombatant}
@@ -279,9 +235,9 @@ function App() {
         onClearMonsters={clearMonsters}
       />
 
-      {/* --- COLUMNA 2: CENTRO (PESTAÑAS) --- */}
-      <div className="flex flex-col h-full">
-        <div className="flex mb-2 bg-gray-800 rounded-lg p-1 border border-gray-700">
+      {/* --- HIJO 2: COLUMNA CENTRO (PESTAÑAS) --- */}
+      <div className="flex flex-col h-full p-2">
+        <div className="flex mb-2 bg-gray-800 rounded-lg p-1 border border-gray-700 shrink-0">
           <button
             onClick={() => setActiveTab("monsters")}
             className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${activeTab === "monsters" ? "bg-blue-600 text-white shadow" : "text-gray-400 hover:text-white hover:bg-gray-700"}`}
@@ -295,11 +251,11 @@ function App() {
             ✨ Grimorio
           </button>
         </div>
-        <div className="flex-grow overflow-hidden">
+        <div className="flex-grow min-h-0 overflow-y-auto custom-scrollbar p-1">
           {activeTab === "monsters" ? (
             <MonsterSearch
               onAddMonster={addMonsterToCombat}
-              onViewStatBlock={handleViewStatBlock} // <-- CABLE CONECTADO AQUÍ
+              onViewStatBlock={handleViewStatBlock} 
             />
           ) : (
             <SpellSearch />
@@ -307,9 +263,9 @@ function App() {
         </div>
       </div>
 
-      {/* --- COLUMNA 3: DERECHA (PESTAÑAS MULTIFUNCIÓN) --- */}
-      <div className="flex flex-col h-full">
-        <div className="flex mb-2 bg-gray-800 rounded-lg p-1 border border-gray-700">
+      {/* --- HIJO 3: COLUMNA DERECHA (PESTAÑAS MULTIFUNCIÓN) --- */}
+      <div className="flex flex-col h-full p-2">
+        <div className="flex mb-2 bg-gray-800 rounded-lg p-1 border border-gray-700 shrink-0">
           <button
             onClick={() => setActiveRightTab("dice")}
             className={`flex-1 py-1.5 rounded text-xs font-bold transition-all ${activeRightTab === "dice" ? "bg-yellow-600 text-black shadow" : "text-gray-400 hover:text-white"}`}
@@ -329,14 +285,14 @@ function App() {
             📜
           </button>
         </div>
-        <div className="flex-grow overflow-hidden">
+        <div className="flex-grow min-h-0 overflow-y-auto custom-scrollbar p-1">
           {activeRightTab === "dice" && <DiceRoller />}
           {activeRightTab === "sound" && <Soundboard />}
           {activeRightTab === "notes" && <Notepad />}
         </div>
       </div>
 
-      {/* --- MODALES INVISIBLES --- */}
+      {/* --- HIJOS RESTANTES: MODALES INVISIBLES --- */}
       <PartyModal
         isOpen={isPartyModalOpen}
         onLongRest={handleLongRest}
@@ -347,14 +303,12 @@ function App() {
         onAddToCombat={addPartyMemberToCombat}
         onDeployAll={addMultipleCombatants}
       />
-
       <EncounterModal
         isOpen={isEncounterModalOpen}
         onClose={() => setIsEncounterModalOpen(false)}
-        currentCombatants={combatants} // Para poder guardar
-        onLoadEncounter={loadEncounter} // Para poder cargar
+        currentCombatants={combatants}
+        onLoadEncounter={loadEncounter}
       />
-
       <StatBlockModal
         isOpen={!!viewingMonsterIndex}
         onClose={() => {
@@ -362,7 +316,7 @@ function App() {
           setViewingMonsterData(null);
         }}
         monsterIndex={viewingMonsterIndex}
-        localData={viewingMonsterData} // <-- EL MODAL RECIBE LOS DATOS
+        localData={viewingMonsterData}
       />
     </Layout>
   );
