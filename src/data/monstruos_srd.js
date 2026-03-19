@@ -30175,7 +30175,7 @@ export const bestiarioSRD = [
   },
   {
     index: "planetar",
-    name: "planetario",
+    name: "Planetar",
     size: "Large",
     type: "celestial",
     alignment: "lawful good",
