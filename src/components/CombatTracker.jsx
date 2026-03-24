@@ -75,10 +75,14 @@ const CombatantRow = ({
   const saveEdit = () => {
     if (editValue !== "" && !isNaN(editValue)) {
       const val = parseInt(editValue);
-      if (editingField === "ac" || editingField === "maxHp")
-        onUpdateStats(combatant.id, editingField, val);
-      else if (editingField === "initiative")
+      if (editingField === "ac") {
+        onUpdateStats(combatant.id, "ac", val);
+      } else if (editingField === "maxHp") {
+        onUpdateStats(combatant.id, "maxHp", val);
+        onUpdateStats(combatant.id, "hp", val); // Llena la vida al nuevo máximo
+      } else if (editingField === "initiative") {
         onUpdateInitiative(combatant.id, val);
+      }
     }
     setEditingField(null);
   };
@@ -367,7 +371,7 @@ const CombatTracker = ({
             onClick={onOpenEncounterModal} 
             className="bg-purple-900/40 hover:bg-purple-800 text-purple-200 text-[9px] lg:text-xs uppercase font-bold px-2 py-1.5 rounded border border-purple-800 flex items-center gap-1"
           >
-            📜 <span className="hidden sm:inline">Encuentros</span>
+            📜 Encuentros
           </button>
         </div>
         <div className="flex items-center gap-1 bg-gray-900/80 px-2 py-1 rounded-lg border border-gray-700">
@@ -401,7 +405,7 @@ const CombatTracker = ({
       </form>
 
       {/* LISTA DE COMBATIENTES (Aquí está la magia del scroll interno) */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-1 pt-1 pb-2 min-h-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-1 pt-4 pb-2 min-h-0">
         {combatants.map((c, index) => (
           <CombatantRow
             key={c.id} 
