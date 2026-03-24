@@ -107,3 +107,13 @@ h1, h2, h3 {
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
   transform: scale(1.02);
 }
+
+/* Feedback táctil global para todos los botones */
+button {
+  transition: transform 0.08s ease, opacity 0.08s ease;
+  -webkit-tap-highlight-color: transparent; /* Quita el flash azul en Android */
+}
+button:active {
+  transform: scale(0.93);
+  opacity: 0.75;
+}

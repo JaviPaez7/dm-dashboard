@@ -167,7 +167,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
       </div>
 
       {/* LISTA DE RESULTADOS */}
-      <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-1">
+      <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-1 pb-20">
         {results.map((monster) => (
           <div
             key={`${monster.index}-${monster.isLocal}`}

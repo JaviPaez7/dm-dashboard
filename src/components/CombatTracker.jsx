@@ -27,6 +27,7 @@ const CombatantRow = ({
   onUpdateDeathSaves,
   onViewStatBlock,
   onUpdateInitiative,
+  onHealCombatant,
 }) => {
   const [delta, setDelta] = useState("");
   const [showConditions, setShowConditions] = useState(false);
@@ -89,6 +90,8 @@ const CombatantRow = ({
 
   const activeStyle = isActive
     ? "border-l-4 border-yellow-400 bg-gray-700 shadow-md"
+    : combatant.hp === 0
+    ? "border-l-4 border-red-900 bg-gray-900/80 opacity-60"
     : "border-l-4 border-gray-600 bg-gray-800/50 opacity-90 transition-colors";
 
   const DeathSaveSelector = ({ type, count, color }) => (
@@ -137,7 +140,9 @@ const CombatantRow = ({
 
           <div className="flex flex-col w-full min-w-0 gap-1.5">
             <div className="flex items-center gap-1.5">
-              <span className={`font-bold text-base lg:text-lg truncate flex-grow leading-tight ${isActive ? "text-white" : "text-gray-300"}`}>
+              <span className={`font-bold text-base lg:text-lg truncate flex-grow leading-tight ${
+                isActive ? "text-white" : combatant.hp === 0 ? "text-red-500 line-through" : "text-gray-300"
+              }`}>
                 {combatant.name}
               </span>
 
@@ -257,6 +262,13 @@ const CombatantRow = ({
               className="w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center bg-green-900/30 hover:bg-green-600 text-green-200 rounded font-bold text-lg" 
               style={{ touchAction: "none" }}
             >+</button>
+            {combatant.hp < combatant.maxHp && (
+              <button
+                onClick={() => onHealCombatant(combatant.id)}
+                className="w-8 h-8 flex items-center justify-center bg-blue-900/30 hover:bg-blue-600 text-blue-200 rounded text-sm"
+                title="Curar al máximo"
+              >⛑️</button>
+            )}
             <button 
               onClick={() => onRemove(combatant.id)} 
               className="ml-1 lg:ml-2 text-gray-500 hover:text-red-400 p-1 text-base"
@@ -328,6 +340,7 @@ const CombatTracker = ({
   onOpenEncounterModal,
   onUpdateInitiative,
   onClearMonsters,
+  onHealCombatant,
 }) => {
   const [name, setName] = useState("");
   const [initiative, setInitiative] = useState("");
@@ -335,6 +348,7 @@ const CombatTracker = ({
 
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [confirmClearMonsters, setConfirmClearMonsters] = useState(false);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -418,45 +432,61 @@ const CombatTracker = ({
             onUpdateDeathSaves={onUpdateDeathSaves} 
             onViewStatBlock={onViewStatBlock} 
             onUpdateInitiative={onUpdateInitiative}
+            onHealCombatant={onHealCombatant}
           />
         ))}
       </div>
 
       {/* FOOTER PEGAJOSO (Siguiente Turno) */}
-      <div className="shrink-0 flex gap-2 mt-2 pt-2 pb-1 border-t border-gray-800 bg-[#161b22]/95 lg:bg-transparent z-20">
-        {confirmClearAll ? (
+      <div className="shrink-0 flex gap-2 mt-2 pt-2 pb-1 border-t border-gray-800 bg-[#161b22]/95 lg:bg-transparent z-20 relative">
+        
+        {/* Botón menú borrar unificado */}
+        {!confirmClearAll && !confirmClearMonsters && (
+          <div className="relative">
+            <button
+              onClick={() => setShowDeleteMenu(v => !v)}
+              className="bg-gray-800 text-gray-400 p-3 rounded-lg border border-gray-700 hover:border-gray-500"
+              title="Opciones de borrado"
+            >
+              🗑️
+            </button>
+            {showDeleteMenu && (
+              <div className="absolute bottom-full mb-2 left-0 bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-30 flex flex-col min-w-[160px] animate-fade-in">
+                <button
+                  onClick={() => { setConfirmClearMonsters(true); setShowDeleteMenu(false); }}
+                  className="flex items-center gap-2 px-3 py-2.5 text-xs text-orange-300 hover:bg-gray-800 text-left"
+                >
+                  🧹 <span>Limpiar monstruos</span>
+                </button>
+                <div className="h-px bg-gray-700" />
+                <button
+                  onClick={() => { setConfirmClearAll(true); setShowDeleteMenu(false); }}
+                  className="flex items-center gap-2 px-3 py-2.5 text-xs text-red-400 hover:bg-gray-800 text-left"
+                >
+                  🗑️ <span>Borrar todo</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {confirmClearAll && (
           <button 
             onClick={() => { onReset(); setConfirmClearAll(false); }} 
             className="flex-grow bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg animate-pulse text-[10px] lg:text-sm uppercase tracking-wider"
           >
             ⚠️ ¿Borrar Mesa?
           </button>
-        ) : (
-          <button 
-            onClick={() => { setConfirmClearAll(true); setConfirmClearMonsters(false); }} 
-            className="bg-gray-800 text-gray-400 p-3 rounded-lg border border-gray-700" 
-            title="Borrar TODO"
-          >
-            🗑️
-          </button>
         )}
 
-        {!confirmClearAll && (confirmClearMonsters ? (
+        {confirmClearMonsters && (
           <button 
             onClick={() => { onClearMonsters(); setConfirmClearMonsters(false); }} 
             className="flex-grow bg-orange-700 text-white font-bold py-3 rounded-lg shadow-lg animate-pulse text-[10px] lg:text-sm uppercase tracking-wider"
           >
             ⚠️ ¿Sólo PJs?
           </button>
-        ) : (
-          <button 
-            onClick={() => { setConfirmClearMonsters(true); setConfirmClearAll(false); }} 
-            className="bg-gray-800 text-gray-400 p-3 rounded-lg border border-gray-700" 
-            title="Limpiar Monstruos"
-          >
-            🧹
-          </button>
-        ))}
+        )}
 
         {!confirmClearAll && !confirmClearMonsters && (
           <button 
