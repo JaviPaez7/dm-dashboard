@@ -1,6 +1,26 @@
-import React from "react";
+import React, { useRef } from "react";
+
+const VIEWS = ["combat", "search", "tools"];
 
 const Layout = ({ children, mobileView, setMobileView }) => {
+  const touchStartX = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(deltaX) < 50) return; // Ignorar swipes cortos
+    const currentIdx = VIEWS.indexOf(mobileView);
+    if (deltaX < 0 && currentIdx < VIEWS.length - 1) {
+      setMobileView(VIEWS[currentIdx + 1]); // Swipe izquierda → siguiente
+    } else if (deltaX > 0 && currentIdx > 0) {
+      setMobileView(VIEWS[currentIdx - 1]); // Swipe derecha → anterior
+    }
+  };
   const childrenArray = React.Children.toArray(children);
 
   const colIzquierda = childrenArray[0];
@@ -50,7 +70,11 @@ const Layout = ({ children, mobileView, setMobileView }) => {
 
         {/* VISTAS DE MÓVIL (Ocultas en escritorio) */}
         {/* CAMBIO CLAVE: Añadimos pb-[70px] para dejar espacio exacto para el menú inferior */}
-        <div className="flex-1 flex flex-col lg:hidden pb-[70px] min-h-0"> 
+        <div 
+          className="flex-1 flex flex-col lg:hidden pb-[70px] min-h-0"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        > 
           {mobileView === "combat" && (
             <div className="flex-1 overflow-hidden flex flex-col shadow-lg rounded-lg border border-gray-800 bg-[#161b22]/90 backdrop-blur-sm animate-fade-in">
               {colIzquierda}

@@ -50,10 +50,37 @@ const formatCR = (cr) => {
   return cr;
 };
 
+const HISTORY_KEY = "dm_monster_search_history";
+const MAX_HISTORY = 5;
+
 const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const [query, setQuery] = useState("");
   const [selectedCR, setSelectedCR] = useState("");
   const [results, setResults] = useState([]);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+    catch { return []; }
+  });
+
+  const saveToHistory = (term) => {
+    if (!term || term.trim().length < 2) return;
+    setSearchHistory(prev => {
+      const cleaned = [term, ...prev.filter(t => t !== term)].slice(0, MAX_HISTORY);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(cleaned));
+      return cleaned;
+    });
+  };
+
+  const handleQueryChange = (val) => {
+    if (query.trim().length >= 2 && val.trim() === "") saveToHistory(query.trim());
+    setQuery(val);
+  };
+
+  const clearSearch = () => {
+    saveToHistory(query.trim());
+    setQuery("");
+    setSelectedCR("");
+  };
 
   useEffect(() => {
     if (!query.trim() && !selectedCR) {
@@ -64,57 +91,35 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     const delayDebounceFn = setTimeout(() => {
       const queryLower = query.toLowerCase();
 
-      // Función de ayuda para filtrar
       const filterLogic = (m) => {
-        // 1. Nombre en Español (o el que traiga el manual)
         const nombreES = (m.name || "").toLowerCase();
-
-        // 2. Nombre en Inglés (usando el index).
-        // Reemplazamos los guiones por espacios para que "red dragon" encuentre "red-dragon"
         const nombreEN = (m.index || "").toLowerCase().replace(/-/g, " ");
+        const matchesName = nombreES.includes(queryLower) || nombreEN.includes(queryLower);
 
-        // Si lo que escribes coincide con el español O con el inglés, lo muestra
-        const matchesName =
-          nombreES.includes(queryLower) || nombreEN.includes(queryLower);
-
-        // --- LÓGICA DE CR CORREGIDA ---
         let matchesCR = true;
         if (selectedCR) {
-          // Si el CR seleccionado es una fracción (ej: "1/4"), buscamos su equivalente decimal (0.25)
           const decimalTarget = crToDecimal[selectedCR];
           const monsterCR = m.challenge_rating ?? m.cr;
-
           if (decimalTarget !== undefined) {
-            // Si es fracción, comparamos con el decimal o con el texto por si acaso
             matchesCR = monsterCR === decimalTarget || monsterCR === selectedCR;
           } else {
-            // Si es número entero, comparamos pasándolo a string
             matchesCR = monsterCR?.toString() === selectedCR;
           }
         }
 
         return matchesName && matchesCR;
-      };;
+      };
 
-      // 1. Manuales (Prioridad)
       const manualMatches = bestiarioES
         .filter(filterLogic)
         .map((m) => ({ index: m.index, name: m.name, isLocal: true, data: m }));
 
-      // 2. SRD Traducido (Sin duplicados del manual)
       const srdMatches = bestiarioSRD
         .filter(filterLogic)
-        .filter(
-          (m) => !manualMatches.some((manual) => manual.index === m.index),
-        )
+        .filter((m) => !manualMatches.some((manual) => manual.index === m.index))
         .map((m) => {
           const adaptado = adaptarMonstruoSRD(m);
-          return {
-            index: adaptado.index,
-            name: adaptado.name,
-            isLocal: false,
-            data: adaptado,
-          };
+          return { index: adaptado.index, name: adaptado.name, isLocal: false, data: adaptado };
         });
 
       setResults([...manualMatches, ...srdMatches].slice(0, 40));
@@ -135,7 +140,8 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
             autoFocus
             className="bg-gray-700/50 border border-gray-600 p-2 rounded-lg flex-grow text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500 text-sm"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onBlur={() => saveToHistory(query.trim())}
           />
 
           {/* Selector de CR */}
@@ -155,16 +161,35 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
           {/* Botón de limpiar */}
           <button
             type="button"
-            onClick={() => {
-              setQuery("");
-              setSelectedCR("");
-            }}
-            className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg border border-gray-600 text-gray-400 hover:text-red-400 transition-colors"
+            onClick={clearSearch}
+            className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg border border-gray-600 text-gray-400 hover:text-red-400 active:text-red-400 transition-colors"
           >
             ✖
           </button>
         </div>
       </div>
+
+      {/* HISTORIAL DE BÚSQUEDA */}
+      {!query && !selectedCR && searchHistory.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <span className="text-[10px] text-gray-500 uppercase font-bold self-center mr-1">Recientes:</span>
+          {searchHistory.map((term) => (
+            <button
+              key={term}
+              onClick={() => setQuery(term)}
+              className="text-[11px] bg-gray-800 hover:bg-gray-700 active:bg-gray-700 border border-gray-700 text-gray-300 px-2 py-0.5 rounded-full transition-colors"
+            >
+              🕐 {term}
+            </button>
+          ))}
+          <button
+            onClick={() => { setSearchHistory([]); localStorage.removeItem(HISTORY_KEY); }}
+            className="text-[10px] text-gray-600 hover:text-red-400 active:text-red-400 px-1"
+          >
+            Borrar
+          </button>
+        </div>
+      )}
 
       {/* LISTA DE RESULTADOS */}
       <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-1 pb-20">

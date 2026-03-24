@@ -110,10 +110,26 @@ h1, h2, h3 {
 
 /* Feedback táctil global para todos los botones */
 button {
-  transition: transform 0.08s ease, opacity 0.08s ease;
   -webkit-tap-highlight-color: transparent; /* Quita el flash azul en Android */
+  touch-action: manipulation; /* Elimina el retraso de 300ms en móvil */
 }
-button:active {
-  transform: scale(0.93);
-  opacity: 0.75;
+
+/* En pantallas táctiles: efecto press visible */
+@media (hover: none) {
+  button:active {
+    transform: scale(0.90) !important;
+    filter: brightness(1.4);
+    transition: transform 0.06s ease, filter 0.06s ease;
+  }
+}
+
+/* En escritorio: transición suave para hover */
+@media (hover: hover) {
+  button {
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+  button:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
 }

@@ -245,7 +245,7 @@ const CombatantRow = ({
               onPointerDown={() => startDelta(-1)} 
               onPointerUp={stopDelta} 
               onPointerLeave={stopDelta} 
-              className="w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center bg-red-900/30 hover:bg-red-600 text-red-200 rounded font-bold text-lg" 
+              className="w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center bg-red-900/30 hover:bg-red-600 active:bg-red-600 text-red-200 rounded font-bold text-lg" 
               style={{ touchAction: "none" }}
             >-</button>
             <input 
@@ -259,19 +259,17 @@ const CombatantRow = ({
               onPointerDown={() => startDelta(1)} 
               onPointerUp={stopDelta} 
               onPointerLeave={stopDelta} 
-              className="w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center bg-green-900/30 hover:bg-green-600 text-green-200 rounded font-bold text-lg" 
+              className="w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center bg-green-900/30 hover:bg-green-600 active:bg-green-600 text-green-200 rounded font-bold text-lg" 
               style={{ touchAction: "none" }}
             >+</button>
-            {combatant.hp < combatant.maxHp && (
-              <button
-                onClick={() => onHealCombatant(combatant.id)}
-                className="w-8 h-8 flex items-center justify-center bg-blue-900/30 hover:bg-blue-600 text-blue-200 rounded text-sm"
-                title="Curar al máximo"
-              >⛑️</button>
-            )}
+            <button
+              onClick={() => onHealCombatant(combatant.id)}
+              className={`w-8 h-8 flex items-center justify-center bg-blue-900/30 hover:bg-blue-600 active:bg-blue-600 text-blue-200 rounded text-sm transition-opacity ${combatant.hp >= combatant.maxHp ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+              title="Curar al máximo"
+            >⛑️</button>
             <button 
               onClick={() => onRemove(combatant.id)} 
-              className="ml-1 lg:ml-2 text-gray-500 hover:text-red-400 p-1 text-base"
+              className="ml-1 lg:ml-2 text-gray-500 hover:text-red-400 active:text-red-400 p-1 text-base"
             >✕</button>
           </div>
         </div>
