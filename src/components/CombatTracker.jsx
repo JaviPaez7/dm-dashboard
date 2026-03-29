@@ -52,9 +52,13 @@ const CombatantRow = ({
   const startDelta = (multiplier) => {
     const amount = deltaRef.current === "" ? 1 : parseInt(deltaRef.current);
     if (isNaN(amount)) return;
+    
+    // Aplica el primer golpe (podría ser 10, 5, o 1 si está vacío)
     onUpdateHP(combatant.id, amount * multiplier);
+    
+    // Empieza el intervalo repitiendo de 1 en 1 como antes
     intervalRef.current = setInterval(() => {
-      onUpdateHP(combatant.id, amount * multiplier);
+      onUpdateHP(combatant.id, multiplier);
     }, 150);
   };
 
@@ -63,7 +67,7 @@ const CombatantRow = ({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    setDelta("");
+    setDelta(""); // Resetea a "" para que se vea el placeholder "1"
   };
 
   const hpPercent = (combatant.hp / combatant.maxHp) * 100;
@@ -264,7 +268,12 @@ const CombatantRow = ({
             >+</button>
             <button
               onClick={() => onHealCombatant(combatant.id)}
-              className={`w-8 h-8 flex items-center justify-center bg-blue-900/30 hover:bg-blue-600 active:bg-blue-600 text-blue-200 rounded text-sm transition-opacity ${combatant.hp >= combatant.maxHp ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+              disabled={combatant.hp >= combatant.maxHp}
+              className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-all ${
+                combatant.hp >= combatant.maxHp 
+                  ? "text-gray-600 opacity-20 cursor-default" 
+                  : "bg-blue-900/30 hover:bg-blue-600 active:bg-blue-600 text-blue-200"
+              }`}
               title="Curar al máximo"
             >⛑️</button>
             <button 
