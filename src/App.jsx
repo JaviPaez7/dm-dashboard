@@ -10,6 +10,9 @@ import StatBlockModal from "./components/StatBlockModal";
 import Soundboard from "./components/Soundboard";
 import Notepad from "./components/Notepad";
 import EncounterModal from "./components/EncounterModal";
+import Login from "./components/Login";
+import { useAuth } from "./context/AuthContext";
+import { supabase } from "./lib/supabase";
 
 function App() {
   // --- ESTADOS BASE (Sin cambios) ---
@@ -40,6 +43,9 @@ function App() {
   const [viewingMonsterData, setViewingMonsterData] = useState(null);
   const [isEncounterModalOpen, setIsEncounterModalOpen] = useState(false);
 
+  const { user } = useAuth();
+  const [shareLink, setShareLink] = useState("");
+
   // --- PERSISTENCIA (Sin cambios) ---
   useEffect(() => {
     localStorage.setItem("dm_dashboard_combatants", JSON.stringify(combatants));
@@ -47,6 +53,51 @@ function App() {
   useEffect(() => {
     localStorage.setItem("dm_dashboard_party", JSON.stringify(party));
   }, [party]);
+
+  // --- NUEVO: SINCRONIZACIÓN EN TIEMPO REAL CON SUPABASE (VISTA JUGADOR) ---
+  useEffect(() => {
+    if (!user) return;
+
+    const syncToSupabase = async () => {
+      const state = {
+        combatants: combatants.map(c => ({
+          id: c.id,
+          name: c.name,
+          hp: c.hp,
+          maxHp: c.maxHp,
+          initiative: c.initiative,
+          isPlayer: c.isPlayer,
+          conditions: c.conditions || [],
+          deathSaves: c.deathSaves || { success: 0, failure: 0 }
+        })),
+        currentTurnIndex,
+        roundCount
+      };
+
+      await supabase
+        .from('encounters_live')
+        .upsert({ 
+          dm_id: user.id, 
+          state_data: state,
+          updated_at: new Date().toISOString()
+        });
+    };
+
+    // Debounce ligero para no saturar la red en cada pequeño cambio
+    const timeout = setTimeout(syncToSupabase, 1000);
+    return () => clearTimeout(timeout);
+  }, [combatants, currentTurnIndex, roundCount, user]);
+
+  useEffect(() => {
+    if (user) {
+      setShareLink(`${window.location.origin}/player/${user.id}`);
+    }
+  }, [user]);
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    alert("¡Enlace de Vista de Jugador copiado al portapapeles!");
+  };
 
   // --- TODAS TUS FUNCIONES DE COMBATE (Sin cambios) ---
   const addCombatant = (newCombatant) => {
@@ -226,6 +277,11 @@ function App() {
     );
   };
 
+
+  if (!user) {
+    return <Login />;
+  }
+
   return (
     <>
       {/* --- TOAST MÓVIL (monstruo añadido) — FUERA de Layout para no alterar children --- */}
@@ -258,6 +314,8 @@ function App() {
           onUpdateInitiative={updateInitiative}
           onClearMonsters={clearMonsters}
           onHealCombatant={healCombatant}
+          shareLink={shareLink}
+          onCopyLink={copyShareLink}
         />
 
         {/* --- HIJO 2: COLUMNA CENTRO (PESTAÑAS) --- */}

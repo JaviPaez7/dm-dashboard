@@ -348,6 +348,8 @@ const CombatTracker = ({
   onUpdateInitiative,
   onClearMonsters,
   onHealCombatant,
+  shareLink,
+  onCopyLink,
 }) => {
   const [name, setName] = useState("");
   const [initiative, setInitiative] = useState("");
@@ -399,6 +401,16 @@ const CombatTracker = ({
           <span className="text-[9px] lg:text-xs text-gray-400 uppercase font-bold">Ronda</span>
           <span className="text-yellow-500 font-bold text-sm lg:text-base">{roundCount}</span>
         </div>
+        
+        {shareLink && (
+          <button 
+            onClick={onCopyLink}
+            className="ml-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] lg:text-xs font-bold px-2 py-1.5 rounded border border-gray-700 flex items-center gap-1 transition-colors"
+            title="Copiar enlace para jugadores"
+          >
+            🔗 <span className="hidden sm:inline">Compartir</span>
+          </button>
+        )}
       </div>
 
       {/* FORMULARIO */}

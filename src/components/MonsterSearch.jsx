@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { bestiarioES } from "../data/monstruos_es";
 import { bestiarioSRD } from "../data/monstruos_srd";
 import { adaptarMonstruoSRD } from "../utils/adaptadorMonstruos";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
+import MonsterCreatorModal from "./MonsterCreatorModal";
+
 
 // Niveles de CR estándar en D&D 5e
 const CR_LEVELS = [
@@ -62,6 +66,25 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     catch { return []; }
   });
 
+  const { user } = useAuth();
+  const [customMonsters, setCustomMonsters] = useState([]);
+  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCustomMonsters = async () => {
+      const { data, error } = await supabase.from('custom_monsters').select('*');
+      if (!error && data) {
+        setCustomMonsters(data);
+      }
+    };
+    fetchCustomMonsters();
+  }, [user]);
+
+  const handleCustomMonsterCreated = (newMonster) => {
+    setCustomMonsters((prev) => [...prev, newMonster]);
+  };
+
   const saveToHistory = (term) => {
     if (!term || term.trim().length < 2) return;
     setSearchHistory(prev => {
@@ -110,6 +133,10 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
         return matchesName && matchesCR;
       };
 
+      const customMatches = customMonsters
+        .filter(filterLogic)
+        .map((m) => ({ index: m.id, name: m.name, isLocal: true, data: m, isCustom: true }));
+
       const manualMatches = bestiarioES
         .filter(filterLogic)
         .map((m) => ({ index: m.index, name: m.name, isLocal: true, data: m }));
@@ -122,7 +149,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
           return { index: adaptado.index, name: adaptado.name, isLocal: false, data: adaptado };
         });
 
-      setResults([...manualMatches, ...srdMatches].slice(0, 40));
+      setResults([...customMatches, ...manualMatches, ...srdMatches].slice(0, 40));
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
@@ -158,13 +185,23 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
             ))}
           </select>
 
-          {/* Botón de limpiar */}
           <button
             type="button"
             onClick={clearSearch}
             className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg border border-gray-600 text-gray-400 hover:text-red-400 active:text-red-400 transition-colors"
+            title="Limpiar búsqueda"
           >
             ✖
+          </button>
+
+          {/* Botón de crear monstruo */}
+          <button
+            type="button"
+            onClick={() => setIsCreatorOpen(true)}
+            className="bg-green-900/50 hover:bg-green-800 p-2 rounded-lg border border-green-700 text-green-400 hover:text-green-300 transition-colors"
+            title="Crear Monstruo Personalizado"
+          >
+            ➕
           </button>
         </div>
       </div>
@@ -242,6 +279,12 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
           </p>
         )}
       </div>
+
+      <MonsterCreatorModal
+        isOpen={isCreatorOpen}
+        onClose={() => setIsCreatorOpen(false)}
+        onMonsterCreated={handleCustomMonsterCreated}
+      />
     </div>
   );
 };
