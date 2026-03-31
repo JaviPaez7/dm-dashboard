@@ -58,7 +58,15 @@ const SpellSearch = () => {
         return matchesName && matchesLevel && matchesClass;
       });
 
-      setResults(found.slice(0, 30));
+      setResults(
+        found
+          .sort((a, b) => {
+            const nameA = (a.name || a.nombre || "").toLowerCase();
+            const nameB = (b.name || b.nombre || "").toLowerCase();
+            return nameA.localeCompare(nameB);
+          })
+          .slice(0, 30)
+      );
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);

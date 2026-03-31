@@ -1,5 +1,7 @@
 // 1. CORRECCIÓN: Añadimos useEffect al import
 import React, { useState, useRef, useEffect } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 
 // Configura aquí tus audios.
 const TRACKS = [
@@ -286,8 +288,14 @@ const TRACKS = [
 ];
 
 const Soundboard = () => {
+  const { user } = useAuth();
   const [activeAmbient, setActiveAmbient] = useState(null);
   const [activeEffect, setActiveEffect] = useState(null);
+  const [customTracks, setCustomTracks] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newSound, setNewSound] = useState({ label: '', url: '', is_loop: false });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [favorites, setFavorites] = useState(() => {
     const saved = localStorage.getItem("dm_sound_favs");
     return saved ? JSON.parse(saved) : [];
@@ -301,6 +309,61 @@ const Soundboard = () => {
   useEffect(() => {
     localStorage.setItem("dm_sound_favs", JSON.stringify(favorites));
   }, [favorites]);
+
+  // Cargar sonidos personalizados de Supabase
+  useEffect(() => {
+    if (user) {
+      fetchCustomSounds();
+    }
+  }, [user]);
+
+  const fetchCustomSounds = async () => {
+    const { data, error } = await supabase
+      .from('custom_sounds')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (data && !error) {
+      setCustomTracks(data.map(track => ({
+        ...track,
+        file: track.url,
+        loop: track.is_loop,
+        isCustom: true
+      })));
+    }
+  };
+
+  const handleAddSound = async (e) => {
+    e.preventDefault();
+    if (!newSound.label || !newSound.url || !user) return;
+    
+    setIsSubmitting(true);
+    const { error } = await supabase
+      .from('custom_sounds')
+      .insert([{
+        user_id: user.id,
+        label: newSound.label,
+        url: newSound.url,
+        is_loop: newSound.is_loop,
+        color: newSound.is_loop 
+          ? "text-cyan-400 border-cyan-500/50 hover:bg-cyan-900/20" 
+          : "text-gray-400 border-gray-500/50 hover:bg-gray-800/20"
+      }]);
+    
+    if (!error) {
+      setNewSound({ label: '', url: '', is_loop: false });
+      setShowAddModal(false);
+      fetchCustomSounds();
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleDeleteCustom = async (e, id) => {
+    e.stopPropagation();
+    if (!confirm("¿Borrar este sonido?")) return;
+    const { error } = await supabase.from('custom_sounds').delete().eq('id', id);
+    if (!error) fetchCustomSounds();
+  };
 
   // Sincronizar volumen cuando cambie el slider
   useEffect(() => {
@@ -348,8 +411,9 @@ const Soundboard = () => {
     setActiveEffect(null);
   };
 
-  const favTracks = TRACKS.filter((t) => favorites.includes(t.label));
-  const otherTracks = TRACKS.filter((t) => !favorites.includes(t.label));
+  const allTracks = [...TRACKS, ...customTracks];
+  const favTracks = allTracks.filter((t) => favorites.includes(t.label));
+  const otherTracks = allTracks.filter((t) => !favorites.includes(t.label));
 
   const SoundButton = ({ track }) => {
     const isActive = track.loop
@@ -379,6 +443,16 @@ const Soundboard = () => {
           {isFav ? "★" : "☆"}
         </span>
 
+        {track.isCustom && (
+          <span 
+            onClick={(e) => handleDeleteCustom(e, track.id)}
+            className="absolute top-1 left-1.5 text-[10px] text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 p-0.5"
+            title="Borrar sonido"
+          >
+            🗑️
+          </span>
+        )}
+
         {/* ETIQUETA DEL SONIDO: Aquí es donde mejoramos la lectura */}
         <span className="text-[11px] font-black uppercase tracking-wider font-sans drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] text-center leading-tight">
           {track.label}
@@ -403,12 +477,21 @@ const Soundboard = () => {
           <h2 className="text-xl font-bold text-pink-400 font-fantasy">
             🎵 Soundboard
           </h2>
-          <button
-            onClick={stopAll}
-            className="bg-red-900/40 hover:bg-red-600 text-red-500 hover:text-white text-[9px] font-bold px-2 py-1 rounded border border-red-600/50 animate-pulse"
-          >
-            🛑 STOP
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-green-900/40 hover:bg-green-600 text-green-500 hover:text-white text-[10px] font-bold px-2 py-1 rounded border border-green-600/50"
+              title="Añadir Enlace Arcano"
+            >
+              ➕
+            </button>
+            <button
+              onClick={stopAll}
+              className="bg-red-900/40 hover:bg-red-600 text-red-500 hover:text-white text-[9px] font-bold px-2 py-1 rounded border border-red-600/50 animate-pulse"
+            >
+              🛑 STOP
+            </button>
+          </div>
         </div>
         <input
           type="range"
@@ -446,6 +529,69 @@ const Soundboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal para añadir sonidos */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 p-6 rounded-xl w-full max-w-sm shadow-2xl animate-fade-in">
+            <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+              ✨ Nuevo Enlace Arcano
+            </h3>
+            <form onSubmit={handleAddSound} className="space-y-4">
+              <div>
+                <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Nombre del Sonido</label>
+                <input 
+                  required
+                  type="text" 
+                  value={newSound.label}
+                  onChange={e => setNewSound({...newSound, label: e.target.value})}
+                  className="w-full bg-black/40 border border-gray-800 rounded p-2 text-sm text-white focus:border-green-600 outline-none"
+                  placeholder="Ej: Rugido de Dragón"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">URL (Direct Link MP3)</label>
+                <input 
+                  required
+                  type="url" 
+                  value={newSound.url}
+                  onChange={e => setNewSound({...newSound, url: e.target.value})}
+                  className="w-full bg-black/40 border border-gray-800 rounded p-2 text-sm text-white focus:border-green-600 outline-none"
+                  placeholder="https://.../audio.mp3"
+                />
+              </div>
+              <div className="flex items-center gap-2 py-2">
+                <input 
+                  type="checkbox" 
+                  id="loop-toggle"
+                  checked={newSound.is_loop}
+                  onChange={e => setNewSound({...newSound, is_loop: e.target.checked})}
+                  className="w-4 h-4 accent-green-600"
+                />
+                <label htmlFor="loop-toggle" className="text-xs text-gray-400 cursor-pointer">
+                  Reproducir en bucle (Ambiental)
+                </label>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2 text-gray-500 hover:text-white text-xs font-bold uppercase transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-grow py-2 bg-green-700 hover:bg-green-600 text-white text-xs font-bold uppercase rounded shadow-lg transition-transform active:scale-95"
+                >
+                  {isSubmitting ? 'Guardando...' : 'Añadir al Grimorio'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

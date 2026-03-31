@@ -204,7 +204,7 @@ function App() {
   const addMonsterToCombat = (incomingData) => {
     const data = incomingData.data || incomingData;
     const isLocal = !!data.stats;
-    const dex = isLocal ? data.stats?.dex : data.dexterity;
+    const dex = data.dexterity || data.stats?.dex;
     const hp = isLocal ? data.hp : data.hit_points;
     const ac = isLocal ? data.ac : data.armor_class?.[0]?.value;
     const safeDex = dex || 10;

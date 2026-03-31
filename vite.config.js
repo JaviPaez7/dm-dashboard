@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate', // Actualiza la app automáticamente cuando hay cambios
-      includeAssets: ['favicon.ico', 'dnd.png', 'apple-touch-icon.png'], // Archivos estáticos extra
+      includeAssets: ['favicon.png', 'og-image.png', 'apple-touch-icon.png'], // Archivos estáticos extra
       manifest: {
         name: 'DM Command Center',
         short_name: 'DM Center',

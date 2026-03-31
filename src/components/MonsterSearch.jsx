@@ -161,7 +161,12 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
           return { index: adaptado.index, name: adaptado.name, isLocal: false, data: adaptado };
         });
 
-      setResults([...customMatches, ...manualMatches, ...srdMatches].slice(0, 40));
+      const allMatches = [...customMatches, ...manualMatches, ...srdMatches];
+      setResults(
+        allMatches
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(0, 40)
+      );
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
