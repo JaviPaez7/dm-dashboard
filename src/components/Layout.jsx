@@ -1,8 +1,10 @@
 import React, { useRef } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const VIEWS = ["combat", "search", "tools"];
 
 const Layout = ({ children, mobileView, setMobileView }) => {
+  const { signOut, user } = useAuth();
   const touchStartX = useRef(null);
 
   const handleTouchStart = (e) => {
@@ -44,8 +46,16 @@ const Layout = ({ children, mobileView, setMobileView }) => {
               <p className="text-[8px] md:text-[10px] text-gray-500 uppercase tracking-widest font-sans">Gestión de Campaña</p>
             </div>
           </div>
-          <div className="hidden md:flex gap-4 text-xs font-fantasy text-gray-500">
-            <span>Pal Medina</span>
+          <div className="hidden md:flex items-center gap-4 text-xs font-fantasy text-gray-500">
+            <div className="flex flex-col items-end">
+              <span>{user?.email}</span>
+              <button 
+                onClick={() => signOut()} 
+                className="text-[9px] text-red-500 hover:text-red-400 uppercase font-bold tracking-tighter"
+              >
+                Cerrar Sesión
+              </button>
+            </div>
             <span className="text-yellow-600">•</span>
           </div>
         </div>

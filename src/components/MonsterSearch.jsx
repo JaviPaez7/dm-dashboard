@@ -85,6 +85,18 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     setCustomMonsters((prev) => [...prev, newMonster]);
   };
 
+  const handleDeleteCustomMonster = async (id) => {
+    if (!confirm("¿Seguro que quieres borrar este monstruo para siempre?")) return;
+    
+    const { error } = await supabase.from('custom_monsters').delete().eq('id', id);
+    if (!error) {
+      setCustomMonsters(prev => prev.filter(m => m.id !== id));
+      setResults(prev => prev.filter(r => r.index !== id));
+    } else {
+      alert("Error al borrar: " + error.message);
+    }
+  };
+
   const saveToHistory = (term) => {
     if (!term || term.trim().length < 2) return;
     setSearchHistory(prev => {
@@ -263,12 +275,23 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
             </button>
 
             <button
-              onClick={() => onAddMonster(monster.data)}
-              className="p-2 w-10 flex items-center justify-center rounded hover:bg-green-900/50 text-gray-500 hover:text-green-400 border border-transparent hover:border-green-700 transition-colors"
-            >
-              ⚔️
-            </button>
-          </div>
+               onClick={() => onAddMonster(monster.data)}
+               className="p-2 w-10 flex items-center justify-center rounded hover:bg-green-900/50 text-gray-500 hover:text-green-400 border border-transparent hover:border-green-700 transition-colors"
+               title="Añadir al combate"
+             >
+               ⚔️
+             </button>
+
+             {monster.isCustom && (
+               <button
+                 onClick={() => handleDeleteCustomMonster(monster.index)}
+                 className="p-2 w-8 flex items-center justify-center rounded hover:bg-red-900/30 text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                 title="Borrar definitivamente"
+               >
+                 🗑️
+               </button>
+             )}
+           </div>
         ))}
 
         {results.length === 0 && (
