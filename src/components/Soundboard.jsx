@@ -4,29 +4,31 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 
 // Configura aquí tus audios.
+const SUPABASE_STORAGE_URL = "https://qwdnyytmvykgtigyszna.supabase.co/storage/v1/object/public/ambient-sounds";
+
 const TRACKS = [
   // --- AMBIENTES (Loop: true) ---
   {
     label: "Abejones",
-    file: "/sounds/Abejones.mp3",
+    file: `${SUPABASE_STORAGE_URL}/Abejones.mp3`,
     loop: true,
     color: "text-pink-400 border-pink-500/50 hover:bg-pink-900/20",
   },
   {
     label: "Ambiente Mazmorra",
-    file: "/sounds/ambienteMazmorra.mp3",
+    file: `${SUPABASE_STORAGE_URL}/ambienteMazmorra.mp3`,
     loop: true,
     color: "text-rose-400 border-rose-500/50 hover:bg-rose-900/20",
   },
   {
     label: "Bajo el agua",
-    file: "/sounds/bajoElAgua.mp3",
+    file: `${SUPABASE_STORAGE_URL}/bajoElAgua.mp3`,
     loop: true,
     color: "text-lime-400 border-lime-500/50 hover:bg-lime-900/20",
   },
   {
     label: "Bosque",
-    file: "/sounds/Bosque.mp3",
+    file: `${SUPABASE_STORAGE_URL}/Bosque.mp3`,
     loop: true,
     color: "text-green-400 border-green-500/50 hover:bg-green-900/20",
   },
@@ -44,7 +46,7 @@ const TRACKS = [
   },
   {
     label: "Lluvia",
-    file: "/sounds/Lluvia.mp3",
+    file: `${SUPABASE_STORAGE_URL}/Lluvia.mp3`,
     loop: true,
     color: "text-blue-400 border-blue-500/50 hover:bg-blue-900/20",
   },
@@ -75,13 +77,13 @@ const TRACKS = [
   // --- MÚSICA (Loop: true) ---
   {
     label: "Música Aventuras",
-    file: "/sounds/musicaAventuras.mp3",
+    file: `${SUPABASE_STORAGE_URL}/musicaAventuras.mp3`,
     loop: true,
     color: "text-emerald-400 border-emerald-500/50 hover:bg-emerald-900/20",
   },
   {
     label: "Música Aventuras 2",
-    file: "/sounds/musicaAventuras2.mp3",
+    file: `${SUPABASE_STORAGE_URL}/musicaAventuras2.mp3`,
     loop: true,
     color: "text-emerald-500 border-emerald-600/50 hover:bg-emerald-900/20",
   },
