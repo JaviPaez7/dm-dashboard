@@ -176,7 +176,6 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
           <input
             type="text"
             placeholder="Nombre de la criatura..."
-            autoFocus
             className="bg-gray-700/50 border border-gray-600 p-2 rounded-lg flex-grow text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500 text-sm"
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}

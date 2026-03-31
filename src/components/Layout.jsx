@@ -46,17 +46,19 @@ const Layout = ({ children, mobileView, setMobileView }) => {
               <p className="text-[8px] md:text-[10px] text-gray-500 uppercase tracking-widest font-sans">Gestión de Campaña</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-4 text-xs font-fantasy text-gray-500">
+          <div className="flex items-center gap-2 md:gap-4 text-xs font-fantasy text-gray-500">
             <div className="flex flex-col items-end">
-              <span>{user?.email}</span>
+              <span className="hidden sm:inline text-[10px] text-gray-400 font-sans tracking-tight">{user?.email}</span>
               <button 
                 onClick={() => signOut()} 
-                className="text-[9px] text-red-500 hover:text-red-400 uppercase font-bold tracking-tighter"
+                className="mt-1 flex items-center gap-1.5 px-2 py-1 bg-red-900/10 border border-red-900/50 rounded-md text-[9px] text-red-400 hover:text-white hover:bg-red-700/80 hover:border-red-500 transition-all uppercase font-black tracking-tighter shadow-inner"
+                title="Cerrar Sesión"
               >
-                Cerrar Sesión
+                <span className="hidden sm:inline">Puerta de Salida</span>
+                <span className="text-xs">🚪</span>
               </button>
             </div>
-            <span className="text-yellow-600">•</span>
+            <span className="text-yellow-600 sm:block hidden">•</span>
           </div>
         </div>
       </header>
