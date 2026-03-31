@@ -7,11 +7,13 @@ const Login = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [resetSent, setResetSent] = useState(false);
+  const { signIn, signUp, resetPassword } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setResetSent(false);
     setLoading(true);
 
     try {
@@ -26,6 +28,25 @@ const Login = () => {
       }
     } catch (err) {
       setError(err.message || 'Error en la autenticación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('Por favor, introduce tu correo electrónico primero.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await resetPassword(email);
+      if (error) throw error;
+      setResetSent(true);
+      setError('Se ha enviado un pergamino de recuperación a tu correo.');
+    } catch (err) {
+      setError(err.message || 'Error al enviar el correo de recuperación');
     } finally {
       setLoading(false);
     }
@@ -57,8 +78,8 @@ const Login = () => {
           </div>
 
         {error && (
-          <div className="bg-red-950/40 border-l-4 border-red-600 text-red-200 p-4 rounded mb-6 text-xs font-bold flex items-center gap-3 animate-shake">
-            <span>⚠️</span> {error}
+          <div className={`border-l-4 p-4 rounded mb-6 text-xs font-bold flex items-center gap-3 animate-shake ${resetSent ? 'bg-green-950/40 border-green-600 text-green-200' : 'bg-red-950/40 border-red-600 text-red-200'}`}>
+            <span>{resetSent ? '✉️' : '⚠️'}</span> {error}
           </div>
         )}
 
@@ -94,9 +115,20 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-black/40 border-b-2 border-gray-800 text-white rounded-t-lg pl-12 pr-4 py-4 focus:outline-none focus:border-red-700 focus:bg-red-900/5 transition-all text-sm"
                   placeholder="••••••••"
-                  required
+                  required={!isRegistering}
                 />
               </div>
+              {!isRegistering && (
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    className="text-[10px] text-gray-600 hover:text-red-500 uppercase font-bold tracking-tighter transition-colors"
+                  >
+                    ¿Olvidaste tu sello sagrado?
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
