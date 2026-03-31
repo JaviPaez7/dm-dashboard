@@ -26,19 +26,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
-  
-  /* Esto adapta la altura real incluyendo la barra de direcciones del móvil */
-  height: 100dvh; 
-  
-  /* Bloqueamos cualquier tipo de scroll externo en todos los dispositivos */
-  overflow: hidden !important; 
-}
-/* ESCRITORIO: Bloqueamos el scroll solo en pantallas grandes (Desktop) */
-@media (min-width: 1024px) {
-  html, body, #root {
-    height: 100vh;
-    overflow: hidden; /* El 'important' no suele ser necesario si la media query está bien puesta */
-  }
+  min-height: 100vh;
 }
 
 /* Títulos con fuente de fantasía */
