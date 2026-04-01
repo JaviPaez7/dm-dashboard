@@ -42,19 +42,26 @@ const DICE_TYPES = [
 
 const DiceRoller = () => {
   const [history, setHistory] = useState([]);
+  const [rollingDice, setRollingDice] = useState(null); // label del dado que está rodando
 
   const rollDie = (sides, label) => {
-    const result = Math.floor(Math.random() * sides) + 1;
-    const newRoll = {
-      id: Date.now(),
-      label,
-      result,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-    setHistory((prev) => [newRoll, ...prev].slice(0, 10));
+    setRollingDice(label);
+    
+    // Pequeño delay para la animación de "shake"
+    setTimeout(() => {
+      const result = Math.floor(Math.random() * sides) + 1;
+      const newRoll = {
+        id: Date.now(),
+        label,
+        result,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setHistory((prev) => [newRoll, ...prev].slice(0, 10));
+      setRollingDice(null);
+    }, 400);
   };
 
   return (
@@ -69,8 +76,9 @@ const DiceRoller = () => {
           <button
             key={die.label}
             onClick={() => rollDie(die.sides, die.label)}
+            disabled={!!rollingDice}
             // Combinamos btn-arcane (fondo/forma) con los colores específicos
-            className={`btn-arcane font-bold py-2 rounded-lg flex flex-col items-center justify-center h-16 w-full transition-all ${die.colorClass}`}
+            className={`btn-arcane font-bold py-2 rounded-lg flex flex-col items-center justify-center h-16 w-full transition-all ${die.colorClass} ${rollingDice === die.label ? 'animate-dice-shake' : ''}`}
           >
             <span className="text-lg filter drop-shadow-md">{die.label}</span>
           </button>
@@ -95,7 +103,13 @@ const DiceRoller = () => {
                 {roll.label}
               </span>
               <span
-                className={`font-bold text-lg ${roll.result === 20 ? "text-yellow-500 animate-pulse" : roll.result === 1 ? "text-red-500" : "text-white"}`}
+                className={`font-bold text-lg px-2 rounded-md transition-all ${
+                  roll.result === 20 && roll.label === 'd20' 
+                    ? "text-yellow-400 animate-crit-gold bg-yellow-900/20 border border-yellow-500/50" 
+                    : roll.result === 1 && roll.label === 'd20'
+                    ? "text-red-500 animate-crit-red bg-red-900/20 border border-red-500/50"
+                    : "text-white"
+                }`}
               >
                 {roll.result}
               </span>

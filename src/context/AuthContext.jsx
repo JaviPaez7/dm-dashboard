@@ -6,6 +6,7 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
     // Verify session on mount
@@ -19,8 +20,11 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
+        if (event === 'PASSWORD_RECOVERY') {
+          setRecoveryMode(true);
+        }
       }
     );
 
@@ -30,10 +34,18 @@ export const AuthProvider = ({ children }) => {
   const value = {
     signUp: (data) => supabase.auth.signUp(data),
     signIn: (data) => supabase.auth.signInWithPassword(data),
-    resetPassword: (email) => supabase.auth.resetPasswordForEmail(email),
-    signOut: () => supabase.auth.signOut(),
+    resetPassword: (email) => supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`,
+    }),
+    updatePassword: (newPassword) => supabase.auth.updateUser({ password: newPassword }),
+    signOut: () => {
+      setRecoveryMode(false);
+      return supabase.auth.signOut();
+    },
     user,
-    loading
+    loading,
+    recoveryMode,
+    setRecoveryMode
   };
 
   return (

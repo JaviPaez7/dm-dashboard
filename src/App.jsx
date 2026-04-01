@@ -11,6 +11,7 @@ import Soundboard from "./components/Soundboard";
 import Notepad from "./components/Notepad";
 import EncounterModal from "./components/EncounterModal";
 import Login from "./components/Login";
+import ResetPassword from "./components/ResetPassword";
 import { useAuth } from "./context/AuthContext";
 import { supabase } from "./lib/supabase";
 
@@ -20,10 +21,7 @@ function App() {
     const saved = localStorage.getItem("dm_dashboard_combatants");
     return saved ? JSON.parse(saved) : [];
   });
-  const [party, setParty] = useState(() => {
-    const saved = localStorage.getItem("dm_dashboard_party");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [party, setParty] = useState([]);
 
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
@@ -43,7 +41,7 @@ function App() {
   const [viewingMonsterData, setViewingMonsterData] = useState(null);
   const [isEncounterModalOpen, setIsEncounterModalOpen] = useState(false);
 
-  const { user } = useAuth();
+  const { user, recoveryMode, setRecoveryMode } = useAuth();
   const [shareLink, setShareLink] = useState("");
 
   // --- PERSISTENCIA (Sin cambios) ---
@@ -91,6 +89,29 @@ function App() {
   useEffect(() => {
     if (user) {
       setShareLink(`${window.location.origin}/player/${user.id}`);
+      
+      // Cargar Party desde Supabase
+      const fetchParty = async () => {
+        const { data, error } = await supabase
+          .from('party_members')
+          .select('*')
+          .eq('dm_id', user.id);
+        
+        if (!error && data) {
+          const mappedData = data.map(p => ({
+            id: p.id,
+            name: p.name,
+            hp: p.hp,
+            maxHp: p.max_hp,
+            ac: p.ac,
+            initiative: p.initiative,
+            isPlayer: p.is_player
+          }));
+          setParty(mappedData);
+        }
+      };
+
+      fetchParty();
     }
   }, [user]);
 
@@ -232,7 +253,8 @@ function App() {
       showToast(data.name || "Criatura", finalHp);
     }
   };
-  const savePartyMember = (newMember) => {
+  const savePartyMember = async (newMember) => {
+    // Optimistic Update
     setParty((prev) => {
       const exists = prev.find((p) => p.id === newMember.id);
       if (exists) {
@@ -241,8 +263,36 @@ function App() {
         return [...prev, newMember];
       }
     });
+
+    // Supabase Sync (Upsert)
+    if (user) {
+      await supabase.from('party_members').upsert({
+        id: typeof newMember.id === 'string' ? newMember.id : undefined, // Solo si es UUID
+        dm_id: user.id,
+        name: newMember.name,
+        hp: newMember.hp,
+        max_hp: newMember.maxHp,
+        ac: newMember.ac,
+        initiative: newMember.initiative,
+        is_player: newMember.isPlayer
+      });
+      
+      // Refetch para asegurar IDs y consistencia
+      const { data } = await supabase.from('party_members').select('*').eq('dm_id', user.id);
+      if (data) {
+        setParty(data.map(p => ({
+          id: p.id, name: p.name, hp: p.hp, maxHp: p.max_hp, ac: p.ac, initiative: p.initiative, isPlayer: p.is_player
+        })));
+      }
+    }
   };
-  const deletePartyMember = (id) => setParty(party.filter((p) => p.id !== id));
+
+  const deletePartyMember = async (id) => {
+    setParty(party.filter((p) => p.id !== id));
+    if (user && typeof id === 'string') {
+      await supabase.from('party_members').delete().eq('id', id);
+    }
+  };
   const addPartyMemberToCombat = (member) => {
     setCombatants((prev) => {
       const updated = [
@@ -277,6 +327,10 @@ function App() {
     );
   };
 
+
+  if (recoveryMode) {
+    return <ResetPassword />;
+  }
 
   if (!user) {
     return <Login />;

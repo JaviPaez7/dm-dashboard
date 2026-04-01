@@ -1,52 +1,68 @@
 # ⚔️ DM Command Center
 
-¡Bienvenido al **Command Center** definitivo para Dungeon Masters de D&D 5e! Esta es una aplicación web construida con **React** y **Tailwind CSS**, diseñada para agilizar las sesiones de juego y que el DM solo tenga que preocuparse de la narrativa (y de no matar a todos los PJs... o sí).
+<img src="public/og-image.png" width="100%" alt="DM Command Center Banner" />
 
-🚀 **[Ver Aplicación en Vivo (Netlify)](https://dnd-jav.netlify.app/)**
+[![Vercel Deployment](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://dm-dashboard-nine.vercel.app/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+
+**DM Command Center** es la herramienta definitiva para Dungeon Masters de **D&D 5e**. Diseñada para simplificar la gestión de partidas, permitiéndote centrarte en la narrativa mientras la aplicación se encarga de la mecánica del juego.
+
+🚀 **[Probar la Aplicación en Vivo](https://dm-dashboard-nine.vercel.app/)**
+
 ---
 
-## ✨ Características Principales
+## ✨ Características Legendarias
 
-### 🔴 Combat Tracker Inteligente
-- **Gestión de Iniciativa:** Ordenación automática de turnos.
-- **Seguimiento de HP:** Control de vida actual, máxima y salvaciones de muerte para PJs.
-- **Sistema de Estados (FX):** Aplicación de condiciones (Cegado, Envenenado, etc.) con descripciones integradas para consulta rápida sin superposiciones.
-- **Auto-Scroll:** La cámara sigue automáticamente al combatiente cuyo turno esté activo.
-- **Edición Rápida:** Cambia CA, Iniciativa o Vida Máxima haciendo clic directamente en el valor.
+### 🔴 Combat Tracker de Alto Rendimiento
+*   **Gestión de Turnos Pro:** Ordenación automática de iniciativa y seguimiento de rondas.
+*   **Vida y Salvaciones:** Control dinámico de HP y Death Saves integradas para PJs.
+*   **Sistema de Estados (FX):** Aplica condiciones visuales (Cegado, Envenenado, etc.) con acceso rápido a sus reglas.
+*   **Auto-Foco:** La interfaz sigue automáticamente al combatiente activo.
 
-### 🐉 Bestiario & Grimorio
-- **Búsqueda en Tiempo Real:** Filtra monstruos y hechizos al instante.
-- **Visor de Fichas:** Acceso a las estadísticas completas de las criaturas (Stat Blocks).
-- **Integración Directa:** Añade monstruos del bestiario al combate con un solo clic (incluye tirada de iniciativa automática basada en su Destreza).
+### ☁️ Persistencia Legado (Cloud Sync)
+*   **Sincronización con Supabase:** Tu **Party** y tus **Notas** ya no se pierden al limpiar el navegador. Todo se guarda de forma segura en tu cuenta.
+*   **Vista de Jugador en Tiempo Real:** Comparte un enlace para que tus jugadores vean el orden de iniciativa y el estado del combate en sus propios dispositivos.
 
-### 🎵 Soundboard Adaptativo
-- **Ambientes en Bucle:** Música de taberna, bosques, mazmorras y más.
-- **Efectos de Sonido (FX):** Rugidos de dragón, hechizos, risas malvadas y memes para momentos críticos.
-- **Sistema de Favoritos:** Guarda tus sonidos más usados arriba del todo.
+### 🐉 Bestiario & Grimorio Integrado
+*   **Búsqueda Instantánea:** Encuentra cualquier monstruo o hechizo oficial de la SRD en milisegundos.
+*   **Importación en un Clic:** Añade criaturas directamente al combate con sus estadísticas (HP, AC e Iniciativa) calculadas automáticamente.
+
+### 🎲 Dados del Destino (Epic Roll)
+*   **Torre de Dados:** Sistema de tiradas con historial.
+*   **Efectos Críticos:** Animaciones especiales y pulsos visuales para los **20 Naturales** y los pifias.
+
+### 🎵 Soundboard Ambiental
+*   **Atmósferas en Bucle:** Música de taberna, bosques oscuros y combate épico.
+*   **Efectos de Sonido:** Rugidos, hechizos y momentos de tensión al alcance de un botón.
 
 ### 📜 Herramientas de Gestión
-- **Party Manager:** Guarda las fichas de tus jugadores para cargarlos en cualquier combate.
-- **Gestor de Encuentros:** Crea encuentros previos y lánzalos a la batalla con un solo botón.
-- **Bloc de Notas:** Bloc con autoguardado para no olvidar nombres improvisados o deudas de oro.
-- **Lanzador de Dados:** Historial de tiradas para mantener el control de la suerte.
+*   **Party Manager:** Guarda las fichas de tus jugadores para cargarlos en cualquier combate.
+*   **Gestor de Encuentros:** Crea encuentros previos y lánzalos a la batalla con un solo botón.
+*   **Bloc de Notas:** Bloc con autoguardado para no olvidar nombres improvisados o deudas de oro.
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Stack Tecnológico
 
-- **React.js** (Hooks, Context, Refs)
-- **Tailwind CSS** (Diseño responsivo y Dark Mode)
-- **LocalStorage API** (Para que tus datos persistan aunque cierres el navegador)
-- **D&D 5e API** (Consulta de datos oficiales)
-
----
-
-## 🖼️ Vista Previa
-![Vista Previa de la Herramienta](src/assets/preview.png)
+*   **Frontend:** [React.js](https://reactjs.org/) con Hooks y Context API.
+*   **Estilos:** [Tailwind CSS](https://tailwindcss.com/) con una estética Dark Fantasy.
+*   **Backend & Auth:** [Supabase](https://supabase.com/) (PostgreSQL + Auth + Storage).
+*   **Despliegue:** [Vercel](https://vercel.com/).
+*   **Datos:** [D&D 5e API](https://www.dnd5eapi.co/).
 
 ---
 
-   ## 👤 Autor
+## 📸 Vista de la Forja
+![Preview](src/assets/preview.png)
 
-* **Javier Paez** - [JaviPaez7](https://github.com/JaviPaez7)
-* ¿Te gusta el proyecto? ¡Una ⭐️ en el repo me ayuda mucho!
+---
+
+## 👤 Autor
+
+*   **Javier Paez** - [JaviPaez7](https://github.com/JaviPaez7)
+
+---
+
+> ¿Te gusta el proyecto? ¡Una ⭐️ en el repo me ayuda a seguir forjando herramientas para el gremio!

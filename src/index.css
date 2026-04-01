@@ -121,3 +121,42 @@ button {
     opacity: 0.8;
   }
 }
+
+/* --- EPIC DICE ANIMATIONS --- */
+@keyframes dice-shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.animate-dice-shake {
+  animation: dice-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes crit-pulse-gold {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0); transform: scale(1.05); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); transform: scale(1); }
+}
+
+.animate-crit-gold {
+  animation: crit-pulse-gold 1s ease-out infinite;
+}
+
+@keyframes crit-pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 20px 10px rgba(220, 38, 38, 0); transform: scale(1.05); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); transform: scale(1); }
+}
+
+.animate-crit-red {
+  animation: crit-pulse-red 1s ease-out infinite;
+}

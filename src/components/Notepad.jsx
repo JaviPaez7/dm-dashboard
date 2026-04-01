@@ -1,19 +1,51 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 
 const Notepad = () => {
   const [note, setNote] = useState("");
+  const { user } = useAuth();
+  const timeoutRef = useRef(null);
 
   // Cargar nota guardada al iniciar
   useEffect(() => {
-    const savedNote = localStorage.getItem("dm_notepad");
-    if (savedNote) setNote(savedNote);
-  }, []);
+    const fetchNote = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('dm_notes')
+        .select('content')
+        .eq('dm_id', user.id)
+        .single();
+      
+      if (!error && data) {
+        setNote(data.content);
+      } else {
+        const savedNote = localStorage.getItem("dm_notepad");
+        if (savedNote) setNote(savedNote);
+      }
+    };
 
-  // Guardar cada vez que escribes
+    fetchNote();
+  }, [user]);
+
+  // Guardar cada vez que escribes (Debounced)
   const handleChange = (e) => {
     const text = e.target.value;
     setNote(text);
     localStorage.setItem("dm_notepad", text);
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    
+    timeoutRef.current = setTimeout(async () => {
+      if (user) {
+        await supabase.from('dm_notes').upsert({
+          dm_id: user.id,
+          content: text,
+          updated_at: new Date().toISOString()
+        });
+      }
+    }, 1500);
   };
 
   return (
