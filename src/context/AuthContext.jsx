@@ -1,5 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut as firebaseSignOut, 
+  sendPasswordResetEmail, 
+  updatePassword as updateFirebasePassword,
+  GoogleAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 const AuthContext = createContext({});
 
@@ -9,38 +19,70 @@ export const AuthProvider = ({ children }) => {
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
-    // Verify session on mount
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+    // Escuchar cambios de estado de autenticación en Firebase
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
-    };
+    });
 
-    checkSession();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        if (event === 'PASSWORD_RECOVERY') {
-          setRecoveryMode(true);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    // En Firebase, el flujo de recuperación de contraseña suele ocurrir
+    // en una página externa gestionada por Firebase, por lo que recoveryMode
+    // no se activará automáticamente a menos que implementemos un manejador de enlaces
+    // personalizado. Dejamos el estado por compatibilidad de tipos.
+    return () => unsubscribe();
   }, []);
 
   const value = {
-    signUp: (data) => supabase.auth.signUp(data),
-    signIn: (data) => supabase.auth.signInWithPassword(data),
-    resetPassword: (email) => supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`,
-    }),
-    updatePassword: (newPassword) => supabase.auth.updateUser({ password: newPassword }),
-    signOut: () => {
+    signUp: async ({ email, password }) => {
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        return { data: userCredential, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
+    },
+    signIn: async ({ email, password }) => {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        return { data: userCredential, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
+    },
+    resetPassword: async (email) => {
+      try {
+        await sendPasswordResetEmail(auth, email);
+        return { error: null };
+      } catch (error) {
+        return { error };
+      }
+    },
+    updatePassword: async (newPassword) => {
+      try {
+        if (!auth.currentUser) throw new Error("No hay ningún usuario autenticado.");
+        await updateFirebasePassword(auth.currentUser, newPassword);
+        return { error: null };
+      } catch (error) {
+        return { error };
+      }
+    },
+    signOut: async () => {
       setRecoveryMode(false);
-      return supabase.auth.signOut();
+      try {
+        await firebaseSignOut(auth);
+        return { error: null };
+      } catch (error) {
+        return { error };
+      }
+    },
+    signInWithGoogle: async () => {
+      const provider = new GoogleAuthProvider();
+      try {
+        const userCredential = await signInWithPopup(auth, provider);
+        return { data: userCredential, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
     },
     user,
     loading,

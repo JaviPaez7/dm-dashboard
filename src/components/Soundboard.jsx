@@ -1,6 +1,6 @@
-// 1. CORRECCIÓN: Añadimos useEffect al import
 import React, { useState, useRef, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { db } from "../lib/firebase";
+import { collection, getDocs, query, where, doc, setDoc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
 // Configura aquí tus audios.
@@ -312,7 +312,7 @@ const Soundboard = () => {
     localStorage.setItem("dm_sound_favs", JSON.stringify(favorites));
   }, [favorites]);
 
-  // Cargar sonidos personalizados de Supabase
+  // Cargar sonidos personalizados de Firebase
   useEffect(() => {
     if (user) {
       fetchCustomSounds();
@@ -320,18 +320,32 @@ const Soundboard = () => {
   }, [user]);
 
   const fetchCustomSounds = async () => {
-    const { data, error } = await supabase
-      .from('custom_sounds')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data && !error) {
+    try {
+      const q = query(
+        collection(db, 'custom_sounds'),
+        where('user_id', '==', user.id)
+      );
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Ordenar en memoria por created_at descendente
+      data.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return dateB - dateA;
+      });
+      
       setCustomTracks(data.map(track => ({
         ...track,
         file: track.url,
         loop: track.is_loop,
         isCustom: true
       })));
+    } catch (error) {
+      console.error("Error al cargar sonidos de Firebase:", error);
     }
   };
 
@@ -340,31 +354,38 @@ const Soundboard = () => {
     if (!newSound.label || !newSound.url || !user) return;
     
     setIsSubmitting(true);
-    const { error } = await supabase
-      .from('custom_sounds')
-      .insert([{
+    try {
+      const docRef = doc(collection(db, 'custom_sounds'));
+      await setDoc(docRef, {
         user_id: user.id,
         label: newSound.label,
         url: newSound.url,
         is_loop: newSound.is_loop,
+        created_at: new Date().toISOString(),
         color: newSound.is_loop 
           ? "text-cyan-400 border-cyan-500/50 hover:bg-cyan-900/20" 
           : "text-gray-400 border-gray-500/50 hover:bg-gray-800/20"
-      }]);
-    
-    if (!error) {
+      });
+      
       setNewSound({ label: '', url: '', is_loop: false });
       setShowAddModal(false);
       fetchCustomSounds();
+    } catch (error) {
+      console.error("Error al añadir sonido en Firebase:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleDeleteCustom = async (e, id) => {
     e.stopPropagation();
     if (!confirm("¿Borrar este sonido?")) return;
-    const { error } = await supabase.from('custom_sounds').delete().eq('id', id);
-    if (!error) fetchCustomSounds();
+    try {
+      await deleteDoc(doc(db, 'custom_sounds', id));
+      fetchCustomSounds();
+    } catch (error) {
+      console.error("Error al borrar sonido en Firebase:", error);
+    }
   };
 
   // Sincronizar volumen cuando cambie el slider

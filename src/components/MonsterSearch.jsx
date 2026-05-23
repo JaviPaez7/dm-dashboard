@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { bestiarioES } from "../data/monstruos_es";
 import { bestiarioSRD } from "../data/monstruos_srd";
 import { adaptarMonstruoSRD } from "../utils/adaptadorMonstruos";
-import { supabase } from "../lib/supabase";
+import { db } from "../lib/firebase";
+import { collection, getDocs, query, where, doc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import MonsterCreatorModal from "./MonsterCreatorModal";
 
@@ -73,9 +74,16 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   useEffect(() => {
     if (!user) return;
     const fetchCustomMonsters = async () => {
-      const { data, error } = await supabase.from('custom_monsters').select('*');
-      if (!error && data) {
+      try {
+        const q = query(collection(db, 'custom_monsters'), where('user_id', '==', user.id));
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
         setCustomMonsters(data);
+      } catch (error) {
+        console.error("Error al cargar monstruos custom:", error);
       }
     };
     fetchCustomMonsters();
@@ -88,11 +96,11 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const handleDeleteCustomMonster = async (id) => {
     if (!confirm("¿Seguro que quieres borrar este monstruo para siempre?")) return;
     
-    const { error } = await supabase.from('custom_monsters').delete().eq('id', id);
-    if (!error) {
+    try {
+      await deleteDoc(doc(db, 'custom_monsters', id));
       setCustomMonsters(prev => prev.filter(m => m.id !== id));
       setResults(prev => prev.filter(r => r.index !== id));
-    } else {
+    } catch (error) {
       alert("Error al borrar: " + error.message);
     }
   };

@@ -8,7 +8,20 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithGoogle } = useAuth();
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) throw error;
+    } catch (err) {
+      setError(err.message || 'Error al iniciar sesión con Google');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -151,6 +164,28 @@ const Login = () => {
                 )}
               </div>
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </button>
+
+            {/* Divisor "O" */}
+            <div className="flex items-center my-2 shrink-0">
+              <div className="flex-grow h-px bg-gray-800/80"></div>
+              <span className="px-4 text-[10px] uppercase font-bold tracking-widest text-gray-600">O entra con</span>
+              <div className="flex-grow h-px bg-gray-800/80"></div>
+            </div>
+
+            {/* Botón de Google */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className={`w-full py-3.5 rounded-lg border border-gray-700 bg-[#161616] hover:bg-[#202020] text-gray-300 font-black text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-95 ${
+                loading ? 'opacity-50 cursor-not-allowed' : 'hover:border-yellow-600/50 hover:text-white'
+              }`}
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.706 0 3.268.618 4.49 1.642l2.437-2.437C17.37 1.583 14.915 1 12.24 1 6.58 1 2 5.58 2 11.24s4.58 10.24 10.24 10.24c5.795 0 10.254-4.074 10.254-10.24 0-.58-.063-1.185-.18-1.755H12.24z" />
+              </svg>
+              <span>Google</span>
             </button>
           </form>
 

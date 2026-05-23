@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const PlayerView = ({ dmId }) => {
   const [encounterState, setEncounterState] = useState(null);
@@ -7,47 +8,28 @@ const PlayerView = ({ dmId }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchInitialState = async () => {
-      const { data, error } = await supabase
-        .from('encounters_live')
-        .select('state_data')
-        .eq('dm_id', dmId)
-        .single();
-
-      if (error) {
+    const docRef = doc(db, 'encounters_live', dmId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && data.state_data) {
+          setEncounterState(data.state_data);
+          setError(null);
+        } else {
+          setError("No hay ningún combate activo en este momento.");
+        }
+      } else {
         setError("No hay ningún combate activo en este momento.");
-      } else if (data) {
-        setEncounterState(data.state_data);
       }
       setLoading(false);
-    };
-
-    fetchInitialState();
-
-    // Suscripción en tiempo real
-    const channel = supabase
-      .channel(`player-view-${dmId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Escuchamos cualquier cambio (INSERT, UPDATE)
-          schema: 'public',
-          table: 'encounters_live',
-          filter: `dm_id=eq.${dmId}`,
-        },
-        (payload) => {
-          console.log("Cambio detectado en Supabase:", payload);
-          if (payload.new && payload.new.state_data) {
-            setEncounterState(payload.new.state_data);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Estado de la suscripción Realtime:", status);
-      });
+    }, (err) => {
+      console.error("Error de conexión en tiempo real:", err);
+      setError("Error al conectar con la crónica de batalla.");
+      setLoading(false);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [dmId]);
 

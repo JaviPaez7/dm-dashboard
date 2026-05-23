@@ -13,7 +13,8 @@ import EncounterModal from "./components/EncounterModal";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
 import { useAuth } from "./context/AuthContext";
-import { supabase } from "./lib/supabase";
+import { db } from "./lib/firebase";
+import { doc, setDoc, getDocs, collection, query, where, deleteDoc } from "firebase/firestore";
 
 function App() {
   // --- ESTADOS BASE (Sin cambios) ---
@@ -52,11 +53,11 @@ function App() {
     localStorage.setItem("dm_dashboard_party", JSON.stringify(party));
   }, [party]);
 
-  // --- NUEVO: SINCRONIZACIÓN EN TIEMPO REAL CON SUPABASE (VISTA JUGADOR) ---
+  // --- NUEVO: SINCRONIZACIÓN EN TIEMPO REAL CON FIREBASE (VISTA JUGADOR) ---
   useEffect(() => {
     if (!user) return;
 
-    const syncToSupabase = async () => {
+    const syncToFirebase = async () => {
       const state = {
         combatants: combatants.map(c => ({
           id: c.id,
@@ -72,17 +73,19 @@ function App() {
         roundCount
       };
 
-      await supabase
-        .from('encounters_live')
-        .upsert({ 
+      try {
+        await setDoc(doc(db, 'encounters_live', user.id), { 
           dm_id: user.id, 
           state_data: state,
           updated_at: new Date().toISOString()
         });
+      } catch (error) {
+        console.error("Error al sincronizar combate:", error);
+      }
     };
 
     // Debounce ligero para no saturar la red en cada pequeño cambio
-    const timeout = setTimeout(syncToSupabase, 1000);
+    const timeout = setTimeout(syncToFirebase, 1000);
     return () => clearTimeout(timeout);
   }, [combatants, currentTurnIndex, roundCount, user]);
 
@@ -90,24 +93,26 @@ function App() {
     if (user) {
       setShareLink(`${window.location.origin}/player/${user.id}`);
       
-      // Cargar Party desde Supabase
+      // Cargar Party desde Firebase
       const fetchParty = async () => {
-        const { data, error } = await supabase
-          .from('party_members')
-          .select('*')
-          .eq('dm_id', user.id);
-        
-        if (!error && data) {
-          const mappedData = data.map(p => ({
-            id: p.id,
-            name: p.name,
-            hp: p.hp,
-            maxHp: p.max_hp,
-            ac: p.ac,
-            initiative: p.initiative,
-            isPlayer: p.is_player
-          }));
+        try {
+          const q = query(collection(db, 'party_members'), where('dm_id', '==', user.id));
+          const querySnapshot = await getDocs(q);
+          const mappedData = querySnapshot.docs.map(doc => {
+            const p = doc.data();
+            return {
+              id: doc.id,
+              name: p.name,
+              hp: p.hp,
+              maxHp: p.max_hp,
+              ac: p.ac,
+              initiative: p.initiative,
+              isPlayer: p.is_player
+            };
+          });
           setParty(mappedData);
+        } catch (error) {
+          console.error("Error al cargar la party:", error);
         }
       };
 
@@ -264,33 +269,53 @@ function App() {
       }
     });
 
-    // Supabase Sync (Upsert)
+    // Firebase Sync
     if (user) {
-      await supabase.from('party_members').upsert({
-        id: typeof newMember.id === 'string' ? newMember.id : undefined, // Solo si es UUID
-        dm_id: user.id,
-        name: newMember.name,
-        hp: newMember.hp,
-        max_hp: newMember.maxHp,
-        ac: newMember.ac,
-        initiative: newMember.initiative,
-        is_player: newMember.isPlayer
-      });
-      
-      // Refetch para asegurar IDs y consistencia
-      const { data } = await supabase.from('party_members').select('*').eq('dm_id', user.id);
-      if (data) {
-        setParty(data.map(p => ({
-          id: p.id, name: p.name, hp: p.hp, maxHp: p.max_hp, ac: p.ac, initiative: p.initiative, isPlayer: p.is_player
-        })));
+      try {
+        const isNew = typeof newMember.id !== 'string' || newMember.id.length < 10;
+        const memberRef = isNew 
+          ? doc(collection(db, 'party_members')) 
+          : doc(db, 'party_members', newMember.id);
+
+        await setDoc(memberRef, {
+          dm_id: user.id,
+          name: newMember.name,
+          hp: newMember.hp,
+          max_hp: newMember.maxHp,
+          ac: newMember.ac,
+          initiative: newMember.initiative,
+          is_player: newMember.isPlayer
+        });
+        
+        // Refetch para asegurar IDs y consistencia
+        const q = query(collection(db, 'party_members'), where('dm_id', '==', user.id));
+        const querySnapshot = await getDocs(q);
+        setParty(querySnapshot.docs.map(doc => {
+          const p = doc.data();
+          return {
+            id: doc.id,
+            name: p.name,
+            hp: p.hp,
+            maxHp: p.max_hp,
+            ac: p.ac,
+            initiative: p.initiative,
+            isPlayer: p.is_player
+          };
+        }));
+      } catch (error) {
+        console.error("Error al guardar miembro de la party:", error);
       }
     }
   };
 
   const deletePartyMember = async (id) => {
     setParty(party.filter((p) => p.id !== id));
-    if (user && typeof id === 'string') {
-      await supabase.from('party_members').delete().eq('id', id);
+    if (user && typeof id === 'string' && id.length >= 10) {
+      try {
+        await deleteDoc(doc(db, 'party_members', id));
+      } catch (error) {
+        console.error("Error al eliminar miembro de la party:", error);
+      }
     }
   };
   const addPartyMemberToCombat = (member) => {

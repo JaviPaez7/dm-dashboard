@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase";
+import { db } from "../lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
 const Notepad = () => {
@@ -12,15 +13,17 @@ const Notepad = () => {
     const fetchNote = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('dm_notes')
-        .select('content')
-        .eq('dm_id', user.id)
-        .single();
-      
-      if (!error && data) {
-        setNote(data.content);
-      } else {
+      try {
+        const docRef = doc(db, 'dm_notes', user.id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setNote(docSnap.data().content || "");
+        } else {
+          const savedNote = localStorage.getItem("dm_notepad");
+          if (savedNote) setNote(savedNote);
+        }
+      } catch (error) {
+        console.error("Error al cargar nota de Firebase:", error);
         const savedNote = localStorage.getItem("dm_notepad");
         if (savedNote) setNote(savedNote);
       }
@@ -39,11 +42,15 @@ const Notepad = () => {
     
     timeoutRef.current = setTimeout(async () => {
       if (user) {
-        await supabase.from('dm_notes').upsert({
-          dm_id: user.id,
-          content: text,
-          updated_at: new Date().toISOString()
-        });
+        try {
+          await setDoc(doc(db, 'dm_notes', user.id), {
+            dm_id: user.id,
+            content: text,
+            updated_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error("Error al guardar nota en Firebase:", error);
+        }
       }
     }, 1500);
   };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 
 const INITIAL_STATE = {
@@ -46,15 +47,15 @@ const MonsterCreatorModal = ({ isOpen, onClose, onMonsterCreated }) => {
         stats: {} 
       };
 
-      const { data, error: dbError } = await supabase
-        .from('custom_monsters')
-        .insert([newMonster])
-        .select()
-        .single();
+      const docRef = doc(collection(db, 'custom_monsters'));
+      const monsterData = {
+        id: docRef.id,
+        ...newMonster
+      };
 
-      if (dbError) throw dbError;
+      await setDoc(docRef, monsterData);
 
-      onMonsterCreated(data); 
+      onMonsterCreated(monsterData); 
       onClose();
       setFormData(INITIAL_STATE);
     } catch (err) {
