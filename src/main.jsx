@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import PlayerView from './components/PlayerView.jsx'
+import TestDB from './components/TestDB.jsx'
 import { AuthProvider } from './context/AuthContext'
 
 // Añade esta línea:
@@ -17,6 +18,14 @@ const Root = () => {
   if (path.startsWith('/player/')) {
     const dmId = path.split('/player/')[1].replace(/\//g, '');
     return <PlayerView dmId={dmId} />;
+  }
+
+  if (path === '/test-db') {
+    return (
+      <AuthProvider>
+        <TestDB />
+      </AuthProvider>
+    );
   }
 
   return (
