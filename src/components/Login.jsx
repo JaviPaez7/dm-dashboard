@@ -8,7 +8,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const { signIn, signUp, resetPassword, signInWithGoogle } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithGoogle, signInAnonymously } = useAuth();
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -18,6 +18,19 @@ const Login = () => {
       if (error) throw error;
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión con Google');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await signInAnonymously();
+      if (error) throw error;
+    } catch (err) {
+      setError(err.message || 'Error al entrar como invitado');
     } finally {
       setLoading(false);
     }
@@ -189,17 +202,26 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-8 text-center border-t border-gray-800/50 pt-6">
+          <div className="mt-8 text-center border-t border-gray-800/50 pt-6 flex flex-col gap-4 items-center">
             <button
               onClick={() => {
                 setIsRegistering(!isRegistering);
                 setError('');
               }}
-              className="text-gray-500 hover:text-yellow-600 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-110"
+              className="text-gray-500 hover:text-yellow-600 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
             >
               {isRegistering
                 ? '¿Ya posees linaje? Inicia sesión'
                 : '¿Eres nuevo en estas tierras? Regístrate'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleGuestSignIn}
+              disabled={loading}
+              className="text-gray-600 hover:text-green-500 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
+            >
+              ⚔️ Entrar como Invitado (Sin cuenta)
             </button>
           </div>
         </div>

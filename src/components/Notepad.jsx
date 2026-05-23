@@ -13,6 +13,12 @@ const Notepad = () => {
     const fetchNote = async () => {
       if (!user) return;
       
+      if (user.isAnonymous) {
+        const savedNote = localStorage.getItem("dm_notepad");
+        if (savedNote) setNote(savedNote);
+        return;
+      }
+      
       try {
         const docRef = doc(db, 'dm_notes', user.id);
         const docSnap = await getDoc(docRef);
@@ -41,7 +47,7 @@ const Notepad = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
     timeoutRef.current = setTimeout(async () => {
-      if (user) {
+      if (user && !user.isAnonymous) {
         try {
           await setDoc(doc(db, 'dm_notes', user.id), {
             dm_id: user.id,

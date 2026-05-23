@@ -22,7 +22,10 @@ function App() {
     const saved = localStorage.getItem("dm_dashboard_combatants");
     return saved ? JSON.parse(saved) : [];
   });
-  const [party, setParty] = useState([]);
+  const [party, setParty] = useState(() => {
+    const saved = localStorage.getItem("dm_dashboard_party");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
@@ -55,7 +58,7 @@ function App() {
 
   // --- NUEVO: SINCRONIZACIÓN EN TIEMPO REAL CON FIREBASE (VISTA JUGADOR) ---
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.isAnonymous) return;
 
     const syncToFirebase = async () => {
       const state = {
@@ -91,6 +94,11 @@ function App() {
 
   useEffect(() => {
     if (user) {
+      if (user.isAnonymous) {
+        setShareLink("");
+        return;
+      }
+
       setShareLink(`${window.location.origin}/player/${user.id}`);
       
       // Cargar Party desde Firebase
@@ -270,7 +278,7 @@ function App() {
     });
 
     // Firebase Sync
-    if (user) {
+    if (user && !user.isAnonymous) {
       try {
         const isNew = typeof newMember.id !== 'string' || newMember.id.length < 10;
         const memberRef = isNew 
@@ -310,7 +318,7 @@ function App() {
 
   const deletePartyMember = async (id) => {
     setParty(party.filter((p) => p.id !== id));
-    if (user && typeof id === 'string' && id.length >= 10) {
+    if (user && !user.isAnonymous && typeof id === 'string' && id.length >= 10) {
       try {
         await deleteDoc(doc(db, 'party_members', id));
       } catch (error) {

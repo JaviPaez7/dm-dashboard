@@ -7,7 +7,8 @@ import {
   sendPasswordResetEmail, 
   updatePassword as updateFirebasePassword,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInAnonymously as firebaseSignInAnonymously
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -84,7 +85,20 @@ export const AuthProvider = ({ children }) => {
         return { data: null, error };
       }
     },
-    user,
+    signInAnonymously: async () => {
+      try {
+        const userCredential = await firebaseSignInAnonymously(auth);
+        return { data: userCredential, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
+    },
+    user: user ? {
+      uid: user.uid,
+      id: user.uid,
+      email: user.email,
+      isAnonymous: user.isAnonymous
+    } : null,
     loading,
     recoveryMode,
     setRecoveryMode

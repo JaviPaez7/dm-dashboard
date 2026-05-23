@@ -314,7 +314,7 @@ const Soundboard = () => {
 
   // Cargar sonidos personalizados de Firebase
   useEffect(() => {
-    if (user) {
+    if (user && !user.isAnonymous) {
       fetchCustomSounds();
     }
   }, [user]);
@@ -352,6 +352,11 @@ const Soundboard = () => {
   const handleAddSound = async (e) => {
     e.preventDefault();
     if (!newSound.label || !newSound.url || !user) return;
+    
+    if (user.isAnonymous) {
+      alert("Crea una cuenta gratuita para guardar sonidos personalizados en la nube.");
+      return;
+    }
     
     setIsSubmitting(true);
     try {

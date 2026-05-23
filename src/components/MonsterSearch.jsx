@@ -72,7 +72,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.isAnonymous) return;
     const fetchCustomMonsters = async () => {
       try {
         const q = query(collection(db, 'custom_monsters'), where('user_id', '==', user.id));

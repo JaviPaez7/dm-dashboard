@@ -35,6 +35,7 @@ const MonsterCreatorModal = ({ isOpen, onClose, onMonsterCreated }) => {
 
     try {
       if (!user) throw new Error('Debes estar logueado para crear monstruos.');
+      if (user.isAnonymous) throw new Error('Crea una cuenta gratuita para forjar tus propios monstruos.');
 
       const newMonster = {
         user_id: user.id,
