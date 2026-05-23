@@ -118,7 +118,41 @@ function App() {
               isPlayer: p.is_player
             };
           });
-          setParty(mappedData);
+          
+          if (mappedData.length > 0) {
+            setParty(mappedData);
+          } else if (party && party.length > 0) {
+            // Si la base de datos está vacía pero localmente tenemos un grupo, lo subimos
+            console.log("Subiendo grupo local a Firestore...");
+            for (const member of party) {
+              const memberRef = doc(collection(db, 'party_members'));
+              await setDoc(memberRef, {
+                dm_id: user.id,
+                name: member.name,
+                hp: member.hp,
+                max_hp: member.maxHp,
+                ac: member.ac,
+                initiative: member.initiative,
+                is_player: member.isPlayer
+              });
+            }
+            // Recargar para sincronizar IDs de Firestore
+            const updatedSnapshot = await getDocs(q);
+            setParty(updatedSnapshot.docs.map(doc => {
+              const p = doc.data();
+              return {
+                id: doc.id,
+                name: p.name,
+                hp: p.hp,
+                maxHp: p.max_hp,
+                ac: p.ac,
+                initiative: p.initiative,
+                isPlayer: p.is_player
+              };
+            }));
+          } else {
+            setParty([]);
+          }
         } catch (error) {
           console.error("Error al cargar la party:", error);
         }

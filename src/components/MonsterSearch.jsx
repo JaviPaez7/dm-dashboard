@@ -70,10 +70,12 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const { user } = useAuth();
   const [customMonsters, setCustomMonsters] = useState([]);
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user || user.isAnonymous) return;
     const fetchCustomMonsters = async () => {
+      setError("");
       try {
         const q = query(collection(db, 'custom_monsters'), where('user_id', '==', user.id));
         const querySnapshot = await getDocs(q);
@@ -84,6 +86,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
         setCustomMonsters(data);
       } catch (error) {
         console.error("Error al cargar monstruos custom:", error);
+        setError("Error al cargar monstruos personalizados. Asegúrate de que las reglas de Firestore estén en modo prueba o permitan lectura.");
       }
     };
     fetchCustomMonsters();
@@ -127,7 +130,15 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
 
   useEffect(() => {
     if (!query.trim() && !selectedCR) {
-      setResults([]);
+      // Mostrar todos los monstruos personalizados por defecto si no hay búsqueda
+      const customMatches = customMonsters.map((m) => ({
+        index: m.id,
+        name: m.name,
+        isLocal: true,
+        data: m,
+        isCustom: true,
+      }));
+      setResults(customMatches);
       return;
     }
 
@@ -178,10 +189,15 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, selectedCR]);
+  }, [query, selectedCR, customMonsters]);
 
   return (
     <div className="h-full flex flex-col p-4 bg-transparent">
+      {error && (
+        <div className="bg-red-950/40 border-l-4 border-red-600 text-red-200 p-3 rounded mb-3 text-xs font-bold">
+          ⚠️ {error}
+        </div>
+      )}
       {/* BARRA DE HERRAMIENTAS DE BÚSQUEDA */}
       <div className="flex flex-col gap-2 mb-4">
         <div className="flex gap-2">
