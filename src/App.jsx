@@ -12,6 +12,7 @@ import Notepad from "./components/Notepad";
 import EncounterModal from "./components/EncounterModal";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
+import Dice3DCanvas from "./components/Dice3DCanvas";
 import { useAuth } from "./context/AuthContext";
 import { db } from "./lib/firebase";
 import { doc, setDoc, getDocs, collection, query, where, deleteDoc } from "firebase/firestore";
@@ -32,6 +33,7 @@ function App() {
   const [roundCount, setRoundCount] = useState(1);
   const [toast, setToast] = useState(null); // { name, hp } | null
   const [combatLogs, setCombatLogs] = useState([]);
+  const [active3DRoll, setActive3DRoll] = useState(null);
 
   const addCombatLog = (message) => {
     const newLog = {
@@ -546,7 +548,13 @@ function App() {
             </button>
           </div>
           <div className="flex-grow min-h-0 overflow-y-auto custom-scrollbar p-1">
-            {activeRightTab === "dice" && <DiceRoller />}
+            {activeRightTab === "dice" && (
+              <DiceRoller 
+                onTrigger3DRoll={(result, callback) => {
+                  setActive3DRoll({ result, callback });
+                }} 
+              />
+            )}
             {activeRightTab === "sound" && <Soundboard />}
             {activeRightTab === "notes" && <Notepad />}
           </div>
@@ -578,6 +586,15 @@ function App() {
           monsterIndex={viewingMonsterIndex}
           localData={viewingMonsterData}
         />
+        {active3DRoll && (
+          <Dice3DCanvas
+            result={active3DRoll.result}
+            onComplete={() => {
+              if (active3DRoll.callback) active3DRoll.callback();
+              setActive3DRoll(null);
+            }}
+          />
+        )}
       </Layout>
     </>
   );

@@ -40,7 +40,7 @@ const DICE_TYPES = [
   },
 ];
 
-const DiceRoller = () => {
+const DiceRoller = ({ onTrigger3DRoll }) => {
   const [history, setHistory] = useState([]);
   const [rollingDice, setRollingDice] = useState(null); // label del dado o "formula"
   const [rollMode, setRollMode] = useState("normal"); // "normal", "advantage", "disadvantage"
@@ -66,6 +66,7 @@ const DiceRoller = () => {
     let breakdownParts = [];
     let containsD20 = false;
     let hasTokens = false;
+    let firstD20Value = undefined;
 
     // Si la fórmula está vacía
     if (!formula) return null;
@@ -101,8 +102,10 @@ const DiceRoller = () => {
           
           chosenRolls = [finalRoll];
           rollBreakdown = `d20(${rolls[0]}, ${secondRoll}) → [${finalRoll}]`;
+          if (firstD20Value === undefined) firstD20Value = finalRoll;
         } else {
           rollBreakdown = `${count}d${sides}(${rolls.join(', ')})`;
+          if (sides === 20 && firstD20Value === undefined) firstD20Value = rolls[0];
         }
 
         const sumRolls = chosenRolls.reduce((a, b) => a + b, 0);
@@ -131,33 +134,43 @@ const DiceRoller = () => {
     return {
       formula: formulaStr + modeLabel,
       result: total,
-      breakdown: `${breakdownText} = ${total}`
+      breakdown: `${breakdownText} = ${total}`,
+      d20Value: firstD20Value
     };
   };
 
   const handleRoll = (formulaText, clickLabel) => {
+    const rollData = parseRollFormula(formulaText, rollMode);
+    if (!rollData) {
+      alert("Fórmula de dados inválida. Usa el formato: 2d6+4, 1d20+5, etc.");
+      return;
+    }
+
     setRollingDice(clickLabel);
     
-    setTimeout(() => {
-      const rollData = parseRollFormula(formulaText, rollMode);
-      if (rollData) {
-        const newRoll = {
-          id: Date.now(),
-          label: rollData.formula,
-          result: rollData.result,
-          breakdown: rollData.breakdown,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          }),
-        };
-        setHistory((prev) => [newRoll, ...prev].slice(0, 15));
-      } else {
-        alert("Fórmula de dados inválida. Usa el formato: 2d6+4, 1d20+5, etc.");
-      }
+    const completeRoll = () => {
+      const newRoll = {
+        id: Date.now(),
+        label: rollData.formula,
+        result: rollData.result,
+        breakdown: rollData.breakdown,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      };
+      setHistory((prev) => [newRoll, ...prev].slice(0, 15));
       setRollingDice(null);
-    }, 400);
+    };
+
+    const hasD20 = formulaText.toLowerCase().includes("d20");
+    if (hasD20 && onTrigger3DRoll && rollData.d20Value !== undefined) {
+      // Si contiene d20 y tenemos activado el visualizador 3D
+      onTrigger3DRoll(rollData.d20Value, completeRoll);
+    } else {
+      setTimeout(completeRoll, 400);
+    }
   };
 
   const handleFormSubmit = (e) => {
