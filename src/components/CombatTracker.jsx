@@ -361,6 +361,14 @@ const CombatTracker = ({
   const [confirmClearMonsters, setConfirmClearMonsters] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
+  const [isLogCollapsed, setIsLogCollapsed] = useState(() => {
+    return localStorage.getItem("dm_combat_log_collapsed") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dm_combat_log_collapsed", isLogCollapsed);
+  }, [isLogCollapsed]);
+
   const logEndRef = useRef(null);
 
   useEffect(() => {
@@ -467,44 +475,57 @@ const CombatTracker = ({
       </div>
 
       {/* FEED DE EVENTOS EN VIVO */}
-      <div className="shrink-0 flex flex-col h-28 lg:h-32 bg-gray-950/85 border border-[#7a2008]/40 rounded-lg p-2 mb-2 min-h-0 shadow-[inset_0_0_12px_rgba(0,0,0,0.9)]">
-        <div className="flex justify-between items-center border-b border-gray-800/80 pb-0.5 mb-1 shrink-0">
+      <div className={`shrink-0 flex flex-col ${isLogCollapsed ? 'h-7 mb-2' : 'h-28 lg:h-32 mb-2'} bg-gray-950/85 border border-[#7a2008]/40 rounded-lg p-2.5 min-h-0 shadow-[inset_0_0_12px_rgba(0,0,0,0.9)] transition-all duration-300`}>
+        <div 
+          onClick={() => setIsLogCollapsed(!isLogCollapsed)}
+          className={`flex justify-between items-center ${isLogCollapsed ? '' : 'border-b border-gray-800/80 pb-0.5 mb-1'} shrink-0 cursor-pointer select-none`}
+        >
           <span className="text-[10px] text-red-400 font-fantasy font-bold tracking-widest flex items-center gap-1.5">
-            <span className="animate-pulse text-red-600">⚫</span> Log de Combate
+            <span className="animate-pulse text-red-600">⚫</span> Log de Combate {isLogCollapsed ? '▲' : '▼'}
           </span>
-          {combatLogs.length > 0 && (
-            <button 
-              type="button"
-              onClick={onClearLogs}
-              className="text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase transition-colors"
-            >
-              Limpiar
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isLogCollapsed && combatLogs.length > 0 && (
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClearLogs();
+                }}
+                className="text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase transition-colors"
+              >
+                Limpiar
+              </button>
+            )}
+            <span className="text-[9px] text-gray-500 hover:text-white font-bold uppercase">
+              {isLogCollapsed ? 'Mostrar' : 'Ocultar'}
+            </span>
+          </div>
         </div>
-        <div className="flex-grow overflow-y-auto custom-scrollbar space-y-1 font-mono text-[10px] lg:text-xs">
-          {combatLogs.map((log) => {
-            let textClass = "text-gray-300";
-            if (log.text.includes("recibe")) textClass = "text-red-400/90";
-            else if (log.text.includes("recupera") || log.text.includes("curado")) textClass = "text-green-400/90";
-            else if (log.text.includes("Ronda")) textClass = "text-yellow-400/90 font-bold";
-            else if (log.text.includes("Turno")) textClass = "text-blue-400/95";
-            else if (log.text.includes("inconsciente")) textClass = "text-purple-400 font-semibold animate-pulse";
+        {!isLogCollapsed && (
+          <div className="flex-grow overflow-y-auto custom-scrollbar space-y-1 font-mono text-[10px] lg:text-xs">
+            {combatLogs.map((log) => {
+              let textClass = "text-gray-300";
+              if (log.text.includes("recibe")) textClass = "text-red-400/90";
+              else if (log.text.includes("recupera") || log.text.includes("curado")) textClass = "text-green-400/90";
+              else if (log.text.includes("Ronda")) textClass = "text-yellow-400/90 font-bold";
+              else if (log.text.includes("Turno")) textClass = "text-blue-400/95";
+              else if (log.text.includes("inconsciente")) textClass = "text-purple-400 font-semibold animate-pulse";
 
-            return (
-              <div key={log.id} className={`${textClass} leading-normal animate-fade-in flex gap-1.5 text-left`}>
-                <span className="text-gray-600 shrink-0 select-none">[{log.timestamp}]</span>
-                <span className="break-words">{log.text}</span>
+              return (
+                <div key={log.id} className={`${textClass} leading-normal animate-fade-in flex gap-1.5 text-left`}>
+                  <span className="text-gray-600 shrink-0 select-none">[{log.timestamp}]</span>
+                  <span className="break-words">{log.text}</span>
+                </div>
+              );
+            })}
+            {combatLogs.length === 0 && (
+              <div className="h-full flex items-center justify-center text-[10px] lg:text-xs text-gray-600 italic">
+                Sin eventos registrados aún.
               </div>
-            );
-          })}
-          {combatLogs.length === 0 && (
-            <div className="h-full flex items-center justify-center text-[10px] lg:text-xs text-gray-600 italic">
-              Sin eventos registrados aún.
-            </div>
-          )}
-          <div ref={logEndRef} />
-        </div>
+            )}
+            <div ref={logEndRef} />
+          </div>
+        )}
       </div>
 
       {/* FOOTER PEGAJOSO (Siguiente Turno) */}
