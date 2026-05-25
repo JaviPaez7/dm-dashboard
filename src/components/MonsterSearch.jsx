@@ -71,6 +71,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const [customMonsters, setCustomMonsters] = useState([]);
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [error, setError] = useState("");
+  const [monsterToDelete, setMonsterToDelete] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -106,8 +107,6 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   };
 
   const handleDeleteCustomMonster = async (id) => {
-    if (!confirm("¿Seguro que quieres borrar este monstruo para siempre?")) return;
-    
     try {
       if (user && user.isAnonymous) {
         const localSaved = JSON.parse(localStorage.getItem("dm_custom_monsters")) || [];
@@ -327,15 +326,15 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
                ⚔️
              </button>
 
-             {monster.isCustom && (
-               <button
-                 onClick={() => handleDeleteCustomMonster(monster.index)}
-                 className="p-2 w-8 flex items-center justify-center rounded hover:bg-red-900/30 text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                 title="Borrar definitivamente"
-               >
-                 🗑️
-               </button>
-             )}
+              {monster.isCustom && (
+                <button
+                  onClick={() => setMonsterToDelete({ id: monster.index, name: monster.name })}
+                  className="p-2 w-8 flex items-center justify-center rounded hover:bg-red-900/30 text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Borrar definitivamente"
+                >
+                  🗑️
+                </button>
+              )}
            </div>
         ))}
 
@@ -353,6 +352,44 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
         onClose={() => setIsCreatorOpen(false)}
         onMonsterCreated={handleCustomMonsterCreated}
       />
+
+      {monsterToDelete && (
+        <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg max-w-sm w-full border border-gray-700 shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-gray-900 border-b border-gray-700 flex justify-between items-center">
+              <h3 className="text-md font-bold text-red-400 font-fantasy tracking-wide flex items-center gap-1.5">
+                <span>⚠️</span> Confirmar Eliminación
+              </h3>
+              <button 
+                onClick={() => setMonsterToDelete(null)} 
+                className="text-gray-400 hover:text-white text-lg font-bold"
+              >
+                ✖
+              </button>
+            </div>
+            <div className="p-4 text-sm text-gray-300 leading-relaxed text-left">
+              ¿Seguro que quieres borrar a <strong className="text-yellow-500 font-bold">{monsterToDelete.name}</strong> para siempre? Esta acción es irreversible.
+            </div>
+            <div className="p-3 bg-gray-900 border-t border-gray-700 flex justify-end gap-2 shrink-0">
+              <button 
+                onClick={() => setMonsterToDelete(null)} 
+                className="px-3 py-1.5 text-xs text-gray-400 hover:text-white transition-colors font-bold"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  handleDeleteCustomMonster(monsterToDelete.id);
+                  setMonsterToDelete(null);
+                }} 
+                className="px-4 py-1.5 rounded text-xs font-bold text-white bg-red-700 hover:bg-red-600 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
