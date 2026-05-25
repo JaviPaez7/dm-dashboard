@@ -187,11 +187,12 @@ const Dice3DCanvas = ({ result, onComplete }) => {
     const qy = nzVec[2]*px - nzVec[0]*pz;
     const qz = nzVec[0]*py - nzVec[1]*px;
 
-    // Matriz de rotación final que alinea el targetNormal con el eje Z (0, 0, 1)
+    // Matriz de rotación final que alinea el targetNormal con el eje Z negativo (0, 0, -1)
+    // para que la cara seleccionada quede de frente al usuario (mirando hacia la cámara)
     const M_final = [
       [px, py, pz],
-      [qx, qy, qz],
-      [nzVec[0], nzVec[1], nzVec[2]]
+      [-qx, -qy, -qz],
+      [-nzVec[0], -nzVec[1], -nzVec[2]]
     ];
 
     // --- ESTADOS DE LA ANIMACIÓN ---
