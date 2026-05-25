@@ -307,6 +307,9 @@ const Soundboard = () => {
   const ambientRef = useRef(new Audio());
   const effectRef = useRef(new Audio());
   const [volume, setVolume] = useState(0.5);
+  
+  // Refs para controlar los intervalos de fading
+  const fadeIntervalsRef = useRef({ ambient: null, effect: null });
 
   useEffect(() => {
     localStorage.setItem("dm_sound_favs", JSON.stringify(favorites));
@@ -393,10 +396,84 @@ const Soundboard = () => {
     }
   };
 
+  // --- HELPERS PARA DESVANECIMIENTO (FADING) ---
+  const fadeOutAudio = (refKey, callback) => {
+    const audio = refKey === 'ambient' ? ambientRef.current : effectRef.current;
+    
+    if (fadeIntervalsRef.current[refKey]) {
+      clearInterval(fadeIntervalsRef.current[refKey]);
+      fadeIntervalsRef.current[refKey] = null;
+    }
+
+    const startVolume = audio.volume;
+    if (startVolume <= 0 || audio.paused) {
+      audio.pause();
+      if (callback) callback();
+      return;
+    }
+
+    const duration = 1500; // 1.5s
+    const stepTime = 50;
+    const stepsCount = duration / stepTime;
+    const volumeStep = startVolume / stepsCount;
+    let currentStep = 0;
+
+    fadeIntervalsRef.current[refKey] = setInterval(() => {
+      currentStep++;
+      const newVolume = Math.max(0, startVolume - (volumeStep * currentStep));
+      audio.volume = newVolume;
+
+      if (newVolume <= 0 || currentStep >= stepsCount) {
+        clearInterval(fadeIntervalsRef.current[refKey]);
+        fadeIntervalsRef.current[refKey] = null;
+        audio.pause();
+        audio.volume = volume; // Restaurar volumen original
+        if (callback) callback();
+      }
+    }, stepTime);
+  };
+
+  const fadeInAudio = (refKey, trackFile, isLoop) => {
+    const audio = refKey === 'ambient' ? ambientRef.current : effectRef.current;
+
+    if (fadeIntervalsRef.current[refKey]) {
+      clearInterval(fadeIntervalsRef.current[refKey]);
+      fadeIntervalsRef.current[refKey] = null;
+    }
+
+    audio.src = trackFile;
+    audio.loop = isLoop;
+    audio.volume = 0;
+    audio.play().catch((err) => console.error("Error al reproducir audio:", err));
+
+    const targetVolume = volume;
+    const duration = 1500; // 1.5s
+    const stepTime = 50;
+    const stepsCount = duration / stepTime;
+    const volumeStep = targetVolume / stepsCount;
+    let currentStep = 0;
+
+    fadeIntervalsRef.current[refKey] = setInterval(() => {
+      currentStep++;
+      const newVolume = Math.min(targetVolume, volumeStep * currentStep);
+      audio.volume = newVolume;
+
+      if (newVolume >= targetVolume || currentStep >= stepsCount) {
+        clearInterval(fadeIntervalsRef.current[refKey]);
+        fadeIntervalsRef.current[refKey] = null;
+        audio.volume = volume; // Sincronizar
+      }
+    }, stepTime);
+  };
+
   // Sincronizar volumen cuando cambie el slider
   useEffect(() => {
-    ambientRef.current.volume = volume;
-    effectRef.current.volume = volume;
+    if (!fadeIntervalsRef.current.ambient) {
+      ambientRef.current.volume = volume;
+    }
+    if (!fadeIntervalsRef.current.effect) {
+      effectRef.current.volume = volume;
+    }
   }, [volume]);
 
   const toggleFavorite = (e, label) => {
@@ -409,34 +486,38 @@ const Soundboard = () => {
   const togglePlay = (track) => {
     if (track.loop) {
       if (activeAmbient === track.label) {
-        ambientRef.current.pause();
-        setActiveAmbient(null);
+        fadeOutAudio('ambient', () => {
+          setActiveAmbient(null);
+        });
       } else {
-        ambientRef.current.src = track.file;
-        ambientRef.current.load(); // Forzamos carga
-        ambientRef.current.loop = true;
-        ambientRef.current
-          .play()
-          .catch((err) => console.error("Error ambiente:", err));
-        setActiveAmbient(track.label);
+        if (activeAmbient) {
+          fadeOutAudio('ambient', () => {
+            fadeInAudio('ambient', track.file, true);
+            setActiveAmbient(track.label);
+          });
+        } else {
+          fadeInAudio('ambient', track.file, true);
+          setActiveAmbient(track.label);
+        }
       }
     } else {
-      effectRef.current.pause();
-      effectRef.current.src = track.file;
-      effectRef.current.load(); // Forzamos carga
-      effectRef.current
-        .play()
-        .catch((err) => console.error("Error efecto:", err));
-      setActiveEffect(track.label);
-      effectRef.current.onended = () => setActiveEffect(null);
+      if (activeEffect) {
+        fadeOutAudio('effect', () => {
+          fadeInAudio('effect', track.file, false);
+          setActiveEffect(track.label);
+          effectRef.current.onended = () => setActiveEffect(null);
+        });
+      } else {
+        fadeInAudio('effect', track.file, false);
+        setActiveEffect(track.label);
+        effectRef.current.onended = () => setActiveEffect(null);
+      }
     }
   };
 
   const stopAll = () => {
-    ambientRef.current.pause();
-    effectRef.current.pause();
-    setActiveAmbient(null);
-    setActiveEffect(null);
+    fadeOutAudio('ambient', () => setActiveAmbient(null));
+    fadeOutAudio('effect', () => setActiveEffect(null));
   };
 
   const allTracks = [...TRACKS, ...customTracks];

@@ -31,6 +31,20 @@ function App() {
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [roundCount, setRoundCount] = useState(1);
   const [toast, setToast] = useState(null); // { name, hp } | null
+  const [combatLogs, setCombatLogs] = useState([]);
+
+  const addCombatLog = (message) => {
+    const newLog = {
+      id: Date.now() + Math.random(),
+      text: message,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    };
+    setCombatLogs((prev) => [...prev, newLog].slice(-50));
+  };
+
+  const clearCombatLogs = () => {
+    setCombatLogs([]);
+  };
 
   // --- ESTADOS DE PESTAÑAS INTERNAS ---
   const [activeTab, setActiveTab] = useState("monsters");
@@ -169,6 +183,7 @@ function App() {
 
   // --- TODAS TUS FUNCIONES DE COMBATE (Sin cambios) ---
   const addCombatant = (newCombatant) => {
+    addCombatLog(`⚔️ ${newCombatant.name} se une al combate (Iniciativa: ${newCombatant.initiative}).`);
     setCombatants((prev) =>
       [...prev, { ...newCombatant, id: Date.now() }].sort(
         (a, b) => b.initiative - a.initiative,
@@ -177,6 +192,8 @@ function App() {
   };
   const updateInitiative = (id, newInitiative) => {
     setCombatants((prev) => {
+      const c = prev.find(x => x.id === id);
+      if (c) addCombatLog(`🎲 Iniciativa de ${c.name} cambiada a ${newInitiative}.`);
       const updated = prev.map((c) =>
         c.id === id ? { ...c, initiative: newInitiative } : c,
       );
@@ -184,17 +201,32 @@ function App() {
     });
   };
   const clearMonsters = () => {
+    addCombatLog("🧹 Limpiando monstruos de la mesa. Se mantienen los PJs.");
     setCombatants((prev) => prev.filter((c) => c.isPlayer === true));
     setCurrentTurnIndex(0);
     setRoundCount(1);
   };
-  const removeCombatant = (id) =>
-    setCombatants((prev) => prev.filter((c) => c.id !== id));
+  const removeCombatant = (id) => {
+    setCombatants((prev) => {
+      const c = prev.find(x => x.id === id);
+      if (c) addCombatLog(`✕ ${c.name} retirado del combate.`);
+      return prev.filter((c) => c.id !== id);
+    });
+  };
   const updateHP = (id, amount) => {
     setCombatants((prev) =>
       prev.map((c) => {
         if (c.id === id) {
           const newHp = Math.max(0, c.hp + amount);
+          const diff = newHp - c.hp;
+          if (diff < 0) {
+            addCombatLog(`💔 ${c.name} recibe ${Math.abs(diff)} de daño (HP: ${newHp}/${c.maxHp}).`);
+            if (newHp === 0 && c.hp > 0) {
+              addCombatLog(`💤 ${c.name} ha caído inconsciente.`);
+            }
+          } else if (diff > 0) {
+            addCombatLog(`💚 ${c.name} recupera ${diff} HP (HP: ${newHp}/${c.maxHp}).`);
+          }
           if (c.isPlayer) {
             setParty((prevParty) =>
               prevParty.map((p) =>
@@ -209,6 +241,7 @@ function App() {
     );
   };
   const handleLongRest = () => {
+    addCombatLog("💤 El grupo realiza un Descanso Largo. Toda la vida restaurada.");
     setParty((prevParty) => prevParty.map((p) => ({ ...p, hp: p.maxHp })));
     setCombatants((prev) =>
       prev.map((c) => (c.isPlayer ? { ...c, hp: c.maxHp } : c)),
@@ -218,10 +251,13 @@ function App() {
     setCombatants((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: parseInt(value) } : c)),
     );
-  const healCombatant = (id) =>
-    setCombatants((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, hp: c.maxHp } : c)),
-    );
+  const healCombatant = (id) => {
+    setCombatants((prev) => {
+      const c = prev.find(x => x.id === id);
+      if (c) addCombatLog(`⛑️ ${c.name} curado al máximo (${c.maxHp} HP).`);
+      return prev.map((c) => (c.id === id ? { ...c, hp: c.maxHp } : c));
+    });
+  };
   const updateDeathSaves = (id, type, value) =>
     setCombatants((prev) =>
       prev.map((c) =>
@@ -252,14 +288,25 @@ function App() {
   };
   const nextTurn = () => {
     if (combatants.length === 0) return;
+    let nextIndex = 0;
+    let nextRound = roundCount;
     if (currentTurnIndex >= combatants.length - 1) {
+      nextIndex = 0;
+      nextRound = roundCount + 1;
+      setRoundCount(nextRound);
       setCurrentTurnIndex(0);
-      setRoundCount((r) => r + 1);
+      addCombatLog(`⏳ --- Nueva Ronda: Ronda ${nextRound} ---`);
     } else {
-      setCurrentTurnIndex((prev) => prev + 1);
+      nextIndex = currentTurnIndex + 1;
+      setCurrentTurnIndex(nextIndex);
+    }
+    const nextCombatant = combatants[nextIndex];
+    if (nextCombatant) {
+      addCombatLog(`⚔️ Turno de ${nextCombatant.name}.`);
     }
   };
   const resetEncounter = () => {
+    addCombatLog("🧹 Mesa limpiada. Combate reseteado.");
     setCombatants([]);
     setRoundCount(1);
     setCurrentTurnIndex(0);
@@ -361,6 +408,7 @@ function App() {
     }
   };
   const addPartyMemberToCombat = (member) => {
+    addCombatLog(`🛡️ PJ ${member.name} se une al combate (Iniciativa: ${member.initiative}).`);
     setCombatants((prev) => {
       const updated = [
         ...prev,
@@ -373,16 +421,22 @@ function App() {
       return updated.sort((a, b) => b.initiative - a.initiative);
     });
   };
-  const addMultipleCombatants = (squad) =>
+  const addMultipleCombatants = (squad) => {
+    squad.forEach((m) => {
+      addCombatLog(`🛡️ PJ ${m.name} se une al combate (Iniciativa: ${m.initiative}).`);
+    });
     setCombatants((prev) =>
       [...prev, ...squad].sort((a, b) => b.initiative - a.initiative),
     );
+  };
   const handleViewStatBlock = (index, data = null) => {
     setViewingMonsterIndex(index);
     setViewingMonsterData(data);
   };
   const loadEncounter = (savedMonsters) => {
+    addCombatLog(`📜 Encuentro cargado con ${savedMonsters.length} criaturas.`);
     const newCombatants = savedMonsters.map((m) => {
+      addCombatLog(`⚔️ ${m.name} se une al combate (Iniciativa: ${m.initiative}).`);
       return {
         ...m,
         isPlayer: false,
@@ -437,6 +491,8 @@ function App() {
           onHealCombatant={healCombatant}
           shareLink={shareLink}
           onCopyLink={copyShareLink}
+          combatLogs={combatLogs}
+          onClearLogs={clearCombatLogs}
         />
 
         {/* --- HIJO 2: COLUMNA CENTRO (PESTAÑAS) --- */}

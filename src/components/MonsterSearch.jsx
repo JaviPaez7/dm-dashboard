@@ -73,7 +73,16 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user || user.isAnonymous) return;
+    if (!user) return;
+    if (user.isAnonymous) {
+      try {
+        const localSaved = JSON.parse(localStorage.getItem("dm_custom_monsters")) || [];
+        setCustomMonsters(localSaved);
+      } catch (err) {
+        console.error("Error al cargar monstruos custom de localStorage:", err);
+      }
+      return;
+    }
     const fetchCustomMonsters = async () => {
       setError("");
       try {
@@ -100,9 +109,17 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     if (!confirm("¿Seguro que quieres borrar este monstruo para siempre?")) return;
     
     try {
-      await deleteDoc(doc(db, 'custom_monsters', id));
-      setCustomMonsters(prev => prev.filter(m => m.id !== id));
-      setResults(prev => prev.filter(r => r.index !== id));
+      if (user && user.isAnonymous) {
+        const localSaved = JSON.parse(localStorage.getItem("dm_custom_monsters")) || [];
+        const updated = localSaved.filter(m => m.id !== id);
+        localStorage.setItem("dm_custom_monsters", JSON.stringify(updated));
+        setCustomMonsters(updated);
+        setResults(prev => prev.filter(r => r.index !== id));
+      } else {
+        await deleteDoc(doc(db, 'custom_monsters', id));
+        setCustomMonsters(prev => prev.filter(m => m.id !== id));
+        setResults(prev => prev.filter(r => r.index !== id));
+      }
     } catch (error) {
       alert("Error al borrar: " + error.message);
     }

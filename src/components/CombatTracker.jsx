@@ -350,6 +350,8 @@ const CombatTracker = ({
   onHealCombatant,
   shareLink,
   onCopyLink,
+  combatLogs = [],
+  onClearLogs,
 }) => {
   const [name, setName] = useState("");
   const [initiative, setInitiative] = useState("");
@@ -358,6 +360,14 @@ const CombatTracker = ({
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [confirmClearMonsters, setConfirmClearMonsters] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+
+  const logEndRef = useRef(null);
+
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [combatLogs]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -454,6 +464,47 @@ const CombatTracker = ({
             onHealCombatant={onHealCombatant}
           />
         ))}
+      </div>
+
+      {/* FEED DE EVENTOS EN VIVO */}
+      <div className="shrink-0 flex flex-col h-28 lg:h-32 bg-gray-950/85 border border-[#7a2008]/40 rounded-lg p-2 mb-2 min-h-0 shadow-[inset_0_0_12px_rgba(0,0,0,0.9)]">
+        <div className="flex justify-between items-center border-b border-gray-800/80 pb-0.5 mb-1 shrink-0">
+          <span className="text-[10px] text-red-400 font-fantasy font-bold tracking-widest flex items-center gap-1.5">
+            <span className="animate-pulse text-red-600">⚫</span> Log de Combate
+          </span>
+          {combatLogs.length > 0 && (
+            <button 
+              type="button"
+              onClick={onClearLogs}
+              className="text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase transition-colors"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+        <div className="flex-grow overflow-y-auto custom-scrollbar space-y-1 font-mono text-[10px] lg:text-xs">
+          {combatLogs.map((log) => {
+            let textClass = "text-gray-300";
+            if (log.text.includes("recibe")) textClass = "text-red-400/90";
+            else if (log.text.includes("recupera") || log.text.includes("curado")) textClass = "text-green-400/90";
+            else if (log.text.includes("Ronda")) textClass = "text-yellow-400/90 font-bold";
+            else if (log.text.includes("Turno")) textClass = "text-blue-400/95";
+            else if (log.text.includes("inconsciente")) textClass = "text-purple-400 font-semibold animate-pulse";
+
+            return (
+              <div key={log.id} className={`${textClass} leading-normal animate-fade-in flex gap-1.5 text-left`}>
+                <span className="text-gray-600 shrink-0 select-none">[{log.timestamp}]</span>
+                <span className="break-words">{log.text}</span>
+              </div>
+            );
+          })}
+          {combatLogs.length === 0 && (
+            <div className="h-full flex items-center justify-center text-[10px] lg:text-xs text-gray-600 italic">
+              Sin eventos registrados aún.
+            </div>
+          )}
+          <div ref={logEndRef} />
+        </div>
       </div>
 
       {/* FOOTER PEGAJOSO (Siguiente Turno) */}

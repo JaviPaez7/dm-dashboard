@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 
 // --- DICCIONARIO INTEGRADO ---
-// Lo ponemos aquí para evitar problemas de importaciones
 const diccionario = {
   str: "FUE",
   dex: "DES",
@@ -28,6 +27,7 @@ const diccionario = {
   "neutral good": "Neutral Bueno",
   "chaotic evil": "Caótico Malvado",
 };
+
 const t = (key) => {
   if (!key) return "";
   return diccionario[key] || key;
@@ -41,11 +41,9 @@ const StatBlockModal = ({ isOpen, onClose, monsterIndex, localData }) => {
   useEffect(() => {
     if (isOpen) {
       if (localData) {
-        // Si tenemos los datos locales (Español), los usamos directamente
         setData(localData);
         setLoading(false);
       } else if (monsterIndex) {
-        // Si no, los pedimos a la API (Inglés)
         setLoading(true);
         fetch(`https://www.dnd5eapi.co/api/monsters/${monsterIndex}`)
           .then((res) => res.json())
@@ -59,7 +57,6 @@ const StatBlockModal = ({ isOpen, onClose, monsterIndex, localData }) => {
           });
       }
     } else {
-      // Limpiamos los datos al cerrar
       setData(null);
     }
   }, [isOpen, monsterIndex, localData]);
@@ -68,94 +65,102 @@ const StatBlockModal = ({ isOpen, onClose, monsterIndex, localData }) => {
 
   // Componente interno para dibujar un atributo (FUE, DES, etc.)
   const Attribute = ({ label, value }) => {
-    const safeValue = value || 10; // 10 por defecto si no existe
+    const safeValue = value ?? 10;
     const mod = Math.floor((safeValue - 10) / 2);
     const sign = mod >= 0 ? "+" : "";
     return (
-      <div className="flex flex-col items-center p-2 bg-gray-900 rounded border border-gray-700">
-        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+      <div className="flex flex-col items-center text-center">
+        <span className="text-xs font-bold text-[#7a2008] uppercase tracking-wider">
           {t(label)}
         </span>
-        <span className="text-lg font-bold text-yellow-500 font-fantasy">
-          {safeValue}
-        </span>
-        <span className="text-xs text-gray-400">
-          ({sign}
-          {mod})
+        <span className="text-sm font-bold text-[#2b1810]">
+          {safeValue} <span className="font-normal text-xs text-[#4e3629]/80">({sign}{mod})</span>
         </span>
       </div>
     );
   };
 
-  // Funciones de extracción segura (para que no explote si el formato es distinto)
-  const getAC = () => data.ac || data.armor_class?.[0]?.value || 10;
-  const getHP = () => data.hp || data.hit_points || 10;
+  // Funciones de extracción segura
+  const getAC = () => data.ac ?? data.armor_class?.[0]?.value ?? 10;
+  const getHP = () => data.hp ?? data.hit_points ?? 10;
+  
   const getSpeed = () => {
-    if (typeof data.speed === "string") return data.speed; // Formato Español
+    if (typeof data.speed === "string") return data.speed;
     if (typeof data.speed === "object")
       return Object.entries(data.speed)
         .map(([k, v]) => `${t(k)} ${v}`)
-        .join(", "); // Formato API
+        .join(", ");
     return "30 ft";
   };
 
+  const getCR = () => data.cr ?? data.challenge_rating ?? "0";
+  
+  const getSenses = () => {
+    if (typeof data.senses === "object") {
+      return Object.entries(data.senses)
+        .map(([k, v]) => `${t(k)} ${v}`)
+        .join(", ");
+    }
+    return data.senses || "Pasiva 10";
+  };
+
+  const getLanguages = () => data.languages || "—";
+
   return (
     <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm p-4"
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-sm p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1c23] text-gray-200 rounded-lg shadow-2xl w-full max-w-2xl h-[80vh] overflow-y-auto relative font-sans border border-yellow-700/50 custom-scrollbar"
+        className="bg-[#fdf1dc] text-[#2b1810] rounded border-t-8 border-b-8 border-x-2 border-[#7a2008] shadow-[0_0_30px_rgba(0,0,0,0.5)] w-full max-w-xl max-h-[85vh] overflow-y-auto relative font-serif custom-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Botón de cerrar */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-4 text-gray-500 hover:text-red-500 text-3xl font-bold transition-colors z-10"
+          className="absolute top-2 right-4 text-[#7a2008] hover:text-red-700 text-3xl font-bold transition-colors z-10 select-none"
         >
           &times;
         </button>
 
         {loading ? (
-          <div className="flex items-center justify-center h-full text-yellow-500 animate-pulse font-fantasy text-xl">
+          <div className="flex items-center justify-center h-48 text-[#7a2008] animate-pulse font-fantasy text-xl">
             Invocando pergamino...
           </div>
         ) : data ? (
-          <div className="p-6 md:p-8">
+          <div className="p-5 md:p-7 text-left">
             {/* Cabecera */}
-            <h2 className="text-3xl font-bold text-yellow-500 font-fantasy border-b border-yellow-700/50 pb-2 mb-1 capitalize">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#7a2008] font-fantasy capitalize tracking-wide leading-tight">
               {data.name}
             </h2>
-            <p className="italic text-gray-400 mb-6 text-sm">
+            <p className="italic text-[#4e3629] text-xs md:text-sm mt-0.5">
               {t(data.size)} {t(data.type)}, {t(data.alignment)}
             </p>
 
-            {/* Barra de Estadísticas Vitales */}
-            <div className="bg-red-900/20 border-y border-red-900/40 py-3 px-4 mb-6 grid grid-cols-3 gap-4 text-center">
+            {/* Separador */}
+            <div className="h-[3px] bg-[#7a2008] my-2" />
+
+            {/* Estadísticas Básicas */}
+            <div className="text-xs md:text-sm space-y-1 text-[#2b1810]">
               <div>
-                <span className="block text-xs text-red-400 font-bold uppercase tracking-wider">
-                  AC
-                </span>
-                <span className="text-xl font-bold text-white">{getAC()}</span>
+                <span className="font-bold text-[#7a2008]">Clase de Armadura</span>{" "}
+                <span className="text-[#4e3629]">{getAC()}</span>
               </div>
               <div>
-                <span className="block text-xs text-green-400 font-bold uppercase tracking-wider">
-                  HP
-                </span>
-                <span className="text-xl font-bold text-white">{getHP()}</span>
+                <span className="font-bold text-[#7a2008]">Puntos de Golpe</span>{" "}
+                <span className="text-[#4e3629]">{getHP()}</span>
               </div>
               <div>
-                <span className="block text-xs text-yellow-400 font-bold uppercase tracking-wider">
-                  Velocidad
-                </span>
-                <span className="text-sm text-white block mt-1 leading-tight">
-                  {getSpeed()}
-                </span>
+                <span className="font-bold text-[#7a2008]">Velocidad</span>{" "}
+                <span className="text-[#4e3629]">{getSpeed()}</span>
               </div>
             </div>
 
+            {/* Separador */}
+            <div className="h-[3px] bg-[#7a2008] my-2" />
+
             {/* Cuadrícula de Atributos */}
-            <div className="grid grid-cols-6 gap-2 mb-8">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 py-2 border-y border-[#7a2008]/40 my-3 bg-[#f5e6cd]/30 rounded-sm">
               <Attribute
                 label="str"
                 value={data.stats ? data.stats.str : data.strength}
@@ -182,47 +187,68 @@ const StatBlockModal = ({ isOpen, onClose, monsterIndex, localData }) => {
               />
             </div>
 
-            {/* Acciones */}
-            <h3 className="text-xl font-bold text-yellow-500 font-fantasy border-b border-gray-700 mb-4 pb-1">
-              Acciones
-            </h3>
-            <div className="space-y-4 text-sm leading-relaxed text-gray-300">
-              {data.actions?.map((action, i) => (
-                <div key={i} className="pl-4 border-l-2 border-gray-700">
-                  <span className="font-bold text-gray-100 block mb-1">
-                    {action.name}
-                  </span>
-                  <span className="text-gray-400">{action.desc}</span>
+            {/* Información Secundaria */}
+            <div className="text-xs md:text-sm space-y-1 text-[#2b1810] border-b border-[#7a2008]/40 pb-2.5 my-3">
+              {data.saving_throws && (
+                <div>
+                  <span className="font-bold text-[#7a2008]">Tiradas de Salvación</span>{" "}
+                  <span className="text-[#4e3629]">{data.saving_throws}</span>
                 </div>
-              ))}
-              {!data.actions && (
-                <p className="text-gray-500 italic">
-                  No tiene acciones registradas.
-                </p>
               )}
+              {data.skills && (
+                <div>
+                  <span className="font-bold text-[#7a2008]">Habilidades</span>{" "}
+                  <span className="text-[#4e3629]">{data.skills}</span>
+                </div>
+              )}
+              <div>
+                <span className="font-bold text-[#7a2008]">Sentidos</span>{" "}
+                <span className="text-[#4e3629]">{getSenses()}</span>
+              </div>
+              <div>
+                <span className="font-bold text-[#7a2008]">Idiomas</span>{" "}
+                <span className="text-[#4e3629]">{getLanguages()}</span>
+              </div>
+              <div>
+                <span className="font-bold text-[#7a2008]">Desafío (CR)</span>{" "}
+                <span className="text-[#4e3629]">{getCR()}</span>
+              </div>
             </div>
 
-            {/* Habilidades Especiales (Solo si tiene) */}
-            {data.special_abilities?.length > 0 && (
-              <>
-                <h3 className="text-xl font-bold text-yellow-500 font-fantasy border-b border-gray-700 mt-8 mb-4 pb-1">
-                  Habilidades
-                </h3>
-                <div className="space-y-3 text-sm text-gray-300">
-                  {data.special_abilities.map((ability, i) => (
-                    <div key={i}>
-                      <span className="font-bold text-gray-100">
-                        {ability.name}.
-                      </span>{" "}
-                      <span className="text-gray-400">{ability.desc}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {/* Habilidades Especiales */}
+            {data.special_abilities && data.special_abilities.length > 0 && (
+              <div className="my-4 space-y-2 text-xs md:text-sm text-[#2b1810] leading-relaxed">
+                {data.special_abilities.map((ability, i) => (
+                  <div key={i}>
+                    <span className="font-bold font-fantasy italic text-[#2b1810]">
+                      {ability.name}.
+                    </span>{" "}
+                    <span className="text-[#4e3629]">{ability.desc || ability.description}</span>
+                  </div>
+                ))}
+              </div>
             )}
+
+            {/* Acciones */}
+            <h3 className="text-base md:text-lg font-bold text-[#7a2008] font-fantasy border-b border-[#7a2008]/40 mb-2 pb-0.5 tracking-wider uppercase mt-4">
+              Acciones
+            </h3>
+            <div className="space-y-3 text-xs md:text-sm text-[#2b1810] leading-relaxed">
+              {data.actions?.map((action, i) => (
+                <div key={i}>
+                  <span className="font-bold font-fantasy italic text-[#2b1810]">
+                    {action.name}.
+                  </span>{" "}
+                  <span className="text-[#4e3629]">{action.desc || action.description}</span>
+                </div>
+              ))}
+              {(!data.actions || data.actions.length === 0) && (
+                <p className="text-gray-500 italic">No tiene acciones registradas.</p>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="p-10 text-center text-gray-500">
+          <div className="p-10 text-center text-[#7a2008] italic">
             El pergamino está en blanco.
           </div>
         )}
