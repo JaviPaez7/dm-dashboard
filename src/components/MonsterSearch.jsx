@@ -3,7 +3,7 @@ import { bestiarioES } from "../data/monstruos_es";
 import { bestiarioSRD } from "../data/monstruos_srd";
 import { adaptarMonstruoSRD } from "../utils/adaptadorMonstruos";
 import { db } from "../lib/firebase";
-import { collection, getDocs, query, where, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query as firestoreQuery, where, doc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import MonsterCreatorModal from "./MonsterCreatorModal";
 
@@ -77,7 +77,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
     const fetchCustomMonsters = async () => {
       setError("");
       try {
-        const q = query(collection(db, 'custom_monsters'), where('user_id', '==', user.id));
+        const q = firestoreQuery(collection(db, 'custom_monsters'), where('user_id', '==', user.id));
         const querySnapshot = await getDocs(q);
         const data = querySnapshot.docs.map(doc => ({
           id: doc.id,
