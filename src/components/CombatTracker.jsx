@@ -66,8 +66,8 @@ const CombatantRow = ({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+      setDelta(""); // Resetea a "" para que se vea el placeholder "1"
     }
-    setDelta(""); // Resetea a "" para que se vea el placeholder "1"
   };
 
   const hpPercent = (combatant.hp / combatant.maxHp) * 100;
