@@ -86,7 +86,7 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
         setCustomMonsters(data);
       } catch (error) {
         console.error("Error al cargar monstruos custom:", error);
-        setError("Error al cargar monstruos personalizados. Asegúrate de que las reglas de Firestore estén en modo prueba o permitan lectura.");
+        setError(`Error al cargar monstruos personalizados: ${error.message || error}`);
       }
     };
     fetchCustomMonsters();
