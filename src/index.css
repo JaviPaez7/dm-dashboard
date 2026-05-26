@@ -2,15 +2,85 @@
 @import "tailwindcss";
 
 @theme {
-  /* Definimos nuestros colores de mazmorra */
-  --color-dungeon-dark: #0f1115;      /* Fondo casi negro */
-  --color-dungeon-panel: #161b22;     /* Fondo de paneles */
-  --color-dungeon-gold: #d4af37;      /* Dorado antiguo */
-  --color-dungeon-red: #8a1c1c;       /* Rojo sangre */
+  /* Definimos nuestros colores de mazmorra a través de variables CSS dinámicas */
+  --color-dungeon-dark: var(--dungeon-dark);      /* Fondo casi negro */
+  --color-dungeon-panel: var(--dungeon-panel);     /* Fondo de paneles */
+  --color-dungeon-gold: var(--dungeon-gold);      /* Dorado antiguo / Acento principal */
+  --color-dungeon-red: var(--dungeon-red);       /* Rojo sangre / Acento secundario */
+  --color-dungeon-border: var(--dungeon-border);   /* Color de bordes */
+  --color-dungeon-accent: var(--dungeon-accent);   /* Brillos / Acentos */
   
   /* Definimos las fuentes */
   --font-fantasy: 'Cinzel', serif;    /* Títulos épicos */
   --font-body: 'Lato', sans-serif;    /* Texto legible */
+}
+
+/* --- DEFINICIÓN DE VARIABLES DE TEMAS --- */
+:root {
+  /* Default / Fortaleza */
+  --dungeon-dark: #0f1115;
+  --dungeon-panel: #161b22;
+  --dungeon-gold: #d4af37;
+  --dungeon-red: #8a1c1c;
+  --dungeon-border: #1f2937;
+  --dungeon-accent: #d4af37;
+  --dungeon-bg-gradient-1: #1f2937;
+  --dungeon-bg-gradient-2: #1a1a1a;
+}
+
+body.theme-fortaleza {
+  --dungeon-dark: #0f1115;
+  --dungeon-panel: #161b22;
+  --dungeon-gold: #d4af37;
+  --dungeon-red: #8a1c1c;
+  --dungeon-border: #1f2937;
+  --dungeon-accent: #d4af37;
+  --dungeon-bg-gradient-1: #1f2937;
+  --dungeon-bg-gradient-2: #1a1a1a;
+}
+
+body.theme-bosque {
+  --dungeon-dark: #08140e;
+  --dungeon-panel: #0d2117;
+  --dungeon-gold: #c2ba8d;
+  --dungeon-red: #10b981;
+  --dungeon-border: #153525;
+  --dungeon-accent: #06b6d4;
+  --dungeon-bg-gradient-1: #0d3a2b;
+  --dungeon-bg-gradient-2: #091a13;
+}
+
+body.theme-infierno {
+  --dungeon-dark: #120303;
+  --dungeon-panel: #1d0909;
+  --dungeon-gold: #ef4444;
+  --dungeon-red: #b91c1c;
+  --dungeon-border: #3b0f0f;
+  --dungeon-accent: #f97316;
+  --dungeon-bg-gradient-1: #4a0f0f;
+  --dungeon-bg-gradient-2: #1a0505;
+}
+
+body.theme-tundra {
+  --dungeon-dark: #0a1128;
+  --dungeon-panel: #132247;
+  --dungeon-gold: #38bdf8;
+  --dungeon-red: #60a5fa;
+  --dungeon-border: #213c7a;
+  --dungeon-accent: #00b4d8;
+  --dungeon-bg-gradient-1: #1e3a8a;
+  --dungeon-bg-gradient-2: #0c1938;
+}
+
+body.theme-piratas {
+  --dungeon-dark: #17110c;
+  --dungeon-panel: #261c14;
+  --dungeon-gold: #bda27e;
+  --dungeon-red: #ca8a04;
+  --dungeon-border: #403022;
+  --dungeon-accent: #a16207;
+  --dungeon-bg-gradient-1: #2d2217;
+  --dungeon-bg-gradient-2: #140e0a;
 }
 
 /* Estilos Globales */
@@ -19,9 +89,10 @@ html, body, #root {
   color: #e2e8f0;
   font-family: var(--font-body);
   background-image: 
-    radial-gradient(circle at 50% 0%, #1f2937 0%, transparent 70%),
-    radial-gradient(circle at 80% 80%, #1a1a1a 0%, transparent 50%);
+    radial-gradient(circle at 50% 0%, var(--dungeon-bg-gradient-1) 0%, transparent 70%),
+    radial-gradient(circle at 80% 80%, var(--dungeon-bg-gradient-2) 0%, transparent 50%);
   background-attachment: fixed;
+  transition: background-color 0.5s ease, background-image 0.5s ease;
   
   margin: 0;
   padding: 0;
@@ -159,4 +230,179 @@ button {
 
 .animate-crit-red {
   animation: crit-pulse-red 1s ease-out infinite;
+}
+
+/* --- TRANSICIONES Y EFECTOS DE TEMA PREMIUM --- */
+.theme-transition {
+  transition: background-color 500ms ease-in-out, border-color 500ms ease-in-out, color 500ms ease-in-out, box-shadow 500ms ease-in-out, opacity 500ms ease-in-out;
+}
+
+/* --- PARTÍCULAS CSS HABILITADAS POR HARDWARE --- */
+.particle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1; /* Detrás de la UI pero delante del gradiente de fondo */
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* 1. Luciérnagas (Bosque Feérico) */
+.particle-firefly {
+  background: radial-gradient(circle, rgba(16,185,129,1) 0%, rgba(212,175,55,0.4) 60%, rgba(0,0,0,0) 100%);
+  box-shadow: 0 0 8px 2px rgba(16,185,129,0.8), 0 0 16px 4px rgba(212,175,55,0.4);
+  animation: float-firefly ease-in-out infinite;
+}
+
+@keyframes float-firefly {
+  0% {
+    transform: translateY(105vh) translateX(0) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(50vh) translateX(40px) scale(1.1);
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-5vh) translateX(-20px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* 2. Cenizas (Infierno) */
+.particle-ash {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 70%, #7c2d12 100%);
+  box-shadow: 0 0 6px 1px rgba(239,68,68,0.7);
+  animation: rise-ash ease-in-out infinite;
+}
+
+@keyframes rise-ash {
+  0% {
+    transform: translateY(105vh) translateX(0) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  60% {
+    transform: translateY(40vh) translateX(-50px) rotate(180deg) scale(1.2);
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-5vh) translateX(30px) rotate(360deg) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* 3. Nieve (Tundra) */
+.particle-snowflake {
+  background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(147,197,253,0.6) 50%, rgba(255,255,255,0) 100%);
+  box-shadow: 0 0 4px 1px rgba(255,255,255,0.8);
+  animation: fall-snowflake linear infinite;
+}
+
+@keyframes fall-snowflake {
+  0% {
+    transform: translateY(-5vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(105vh) translateX(80px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* 4. Polvo Dorado (Fortaleza) */
+.particle-dust {
+  background: radial-gradient(circle, rgba(212,175,55,0.8) 0%, rgba(212,175,55,0.2) 60%, rgba(0,0,0,0) 100%);
+  animation: float-dust ease-in-out infinite;
+}
+
+@keyframes float-dust {
+  0% {
+    transform: translateY(105vh) translateX(0) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.45;
+  }
+  90% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateY(-5vh) translateX(30px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* 5. Olas y Bruma (Piratas) */
+.mist-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 120%, rgba(145, 98, 7, 0.08) 0%, rgba(23, 17, 12, 0) 70%);
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sea-waves {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 100" fill="%23261c14" opacity="0.15"><path d="M0,32L120,42.7C240,53,480,75,720,74.7C960,75,1200,53,1320,42.7L1440,32L1440,100L1320,100C1200,100,960,100,720,100C480,100,240,100,120,100L0,100Z"></path></svg>') repeat-x;
+  background-size: 1440px 80px;
+  animation: wave-slide 20s linear infinite;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sea-waves-2 {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 90px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 100" fill="%2317110c" opacity="0.2"><path d="M0,64L120,58.7C240,53,480,43,720,48C960,53,1200,75,1320,85.3L1440,96L1440,100L1320,100C1200,100,960,100,720,100C480,100,240,100,120,100L0,100Z"></path></svg>') repeat-x;
+  background-size: 1440px 90px;
+  animation: wave-slide-reverse 15s linear infinite;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes wave-slide {
+  0% { background-position-x: 0; }
+  100% { background-position-x: 1440px; }
+}
+
+@keyframes wave-slide-reverse {
+  0% { background-position-x: 0; }
+  100% { background-position-x: -1440px; }
 }

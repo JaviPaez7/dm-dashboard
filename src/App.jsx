@@ -16,6 +16,7 @@ import Dice3DCanvas from "./components/Dice3DCanvas";
 import { useAuth } from "./context/AuthContext";
 import { db } from "./lib/firebase";
 import { doc, setDoc, getDocs, collection, query, where, deleteDoc } from "firebase/firestore";
+import ThemeParticles from "./components/ThemeParticles";
 
 function App() {
   // --- ESTADOS BASE (Sin cambios) ---
@@ -34,6 +35,20 @@ function App() {
   const [toast, setToast] = useState(null); // { name, hp } | null
   const [combatLogs, setCombatLogs] = useState([]);
   const [active3DRoll, setActive3DRoll] = useState(null);
+  const [activeTheme, setActiveTheme] = useState(() => {
+    return localStorage.getItem("dm_dashboard_theme") || "fortaleza";
+  });
+
+  useEffect(() => {
+    const themes = ["theme-fortaleza", "theme-bosque", "theme-infierno", "theme-tundra", "theme-piratas"];
+    document.body.classList.remove(...themes);
+    document.body.classList.add(`theme-${activeTheme}`);
+    // Añadimos también la clase de transición
+    if (!document.body.classList.contains("theme-transition")) {
+      document.body.classList.add("theme-transition");
+    }
+    localStorage.setItem("dm_dashboard_theme", activeTheme);
+  }, [activeTheme]);
 
   const addCombatLog = (message) => {
     const newLog = {
@@ -89,7 +104,8 @@ function App() {
           deathSaves: c.deathSaves || { success: 0, failure: 0 }
         })),
         currentTurnIndex,
-        roundCount
+        roundCount,
+        activeTheme
       };
 
       try {
@@ -106,7 +122,7 @@ function App() {
     // Debounce ligero para no saturar la red en cada pequeño cambio
     const timeout = setTimeout(syncToFirebase, 1000);
     return () => clearTimeout(timeout);
-  }, [combatants, currentTurnIndex, roundCount, user]);
+  }, [combatants, currentTurnIndex, roundCount, user, activeTheme]);
 
   useEffect(() => {
     if (user) {
@@ -461,6 +477,7 @@ function App() {
 
   return (
     <>
+      <ThemeParticles activeTheme={activeTheme} />
       {/* --- TOAST MÓVIL (monstruo añadido) — FUERA de Layout para no alterar children --- */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 lg:hidden pointer-events-none bg-gray-900 border border-green-600 text-green-300 text-xs font-bold px-4 py-2 rounded-full shadow-xl flex items-center gap-2 animate-fade-in">
@@ -470,7 +487,12 @@ function App() {
       )}
 
       {/* Pasamos el estado de la vista móvil y el setter al Layout */}
-      <Layout mobileView={mobileView} setMobileView={setMobileView}>
+      <Layout 
+        mobileView={mobileView} 
+        setMobileView={setMobileView}
+        activeTheme={activeTheme}
+        onChangeTheme={setActiveTheme}
+      >
         
         {/* --- HIJO 1: COLUMNA IZQUIERDA (COMBATE) --- */}
         <CombatTracker
