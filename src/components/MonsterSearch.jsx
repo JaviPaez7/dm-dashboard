@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { bestiarioES } from "../data/monstruos_es";
 import { bestiarioSRD } from "../data/monstruos_srd";
 import { adaptarMonstruoSRD } from "../utils/adaptadorMonstruos";
-import { db } from "../lib/firebase";
-import { collection, getDocs, query as firestoreQuery, where, doc, deleteDoc } from "firebase/firestore";
+import pb from "../lib/pb";
+import { getUserPrefs, patchUserPrefs } from "../lib/userPrefs";
 import { useAuth } from "../context/AuthContext";
 import MonsterCreatorModal from "./MonsterCreatorModal";
 
@@ -55,17 +55,14 @@ const formatCR = (cr) => {
   return cr;
 };
 
-const HISTORY_KEY = "dm_monster_search_history";
 const MAX_HISTORY = 5;
 
 const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   const [query, setQuery] = useState("");
   const [selectedCR, setSelectedCR] = useState("");
   const [results, setResults] = useState([]);
-  const [searchHistory, setSearchHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
-    catch { return []; }
-  });
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [historyReady, setHistoryReady] = useState(false);
 
   const { user } = useAuth();
   const [customMonsters, setCustomMonsters] = useState([]);
@@ -76,30 +73,33 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
   useEffect(() => {
     if (!user) return;
     if (user.isAnonymous) {
-      try {
-        const localSaved = JSON.parse(localStorage.getItem("dm_custom_monsters")) || [];
-        setCustomMonsters(localSaved);
-      } catch (err) {
-        console.error("Error al cargar monstruos custom de localStorage:", err);
-      }
+      setCustomMonsters([]);
+      setSearchHistory([]);
+      setHistoryReady(true);
       return;
     }
+
     const fetchCustomMonsters = async () => {
       setError("");
       try {
-        const q = firestoreQuery(collection(db, 'custom_monsters'), where('user_id', '==', user.id));
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const data = await pb.collection("custom_monsters").getFullList({
+          filter: `user_id = "${user.id}"`,
+        });
         setCustomMonsters(data);
       } catch (error) {
         console.error("Error al cargar monstruos custom:", error);
         setError(`Error al cargar monstruos personalizados: ${error.message || error}`);
       }
     };
+
+    const fetchHistory = async () => {
+      const prefs = await getUserPrefs(user.id);
+      setSearchHistory(prefs.search_history || []);
+      setHistoryReady(true);
+    };
+
     fetchCustomMonsters();
+    fetchHistory();
   }, [user]);
 
   const handleCustomMonsterCreated = (newMonster) => {
@@ -108,17 +108,13 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
 
   const handleDeleteCustomMonster = async (id) => {
     try {
-      if (user && user.isAnonymous) {
-        const localSaved = JSON.parse(localStorage.getItem("dm_custom_monsters")) || [];
-        const updated = localSaved.filter(m => m.id !== id);
-        localStorage.setItem("dm_custom_monsters", JSON.stringify(updated));
-        setCustomMonsters(updated);
-        setResults(prev => prev.filter(r => r.index !== id));
-      } else {
-        await deleteDoc(doc(db, 'custom_monsters', id));
-        setCustomMonsters(prev => prev.filter(m => m.id !== id));
-        setResults(prev => prev.filter(r => r.index !== id));
+      if (!user || user.isAnonymous) {
+        alert("Necesitas una cuenta para gestionar monstruos personalizados.");
+        return;
       }
+      await pb.collection("custom_monsters").delete(id);
+      setCustomMonsters((prev) => prev.filter((m) => m.id !== id));
+      setResults((prev) => prev.filter((r) => r.index !== id));
     } catch (error) {
       alert("Error al borrar: " + error.message);
     }
@@ -126,9 +122,11 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
 
   const saveToHistory = (term) => {
     if (!term || term.trim().length < 2) return;
-    setSearchHistory(prev => {
-      const cleaned = [term, ...prev.filter(t => t !== term)].slice(0, MAX_HISTORY);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(cleaned));
+    setSearchHistory((prev) => {
+      const cleaned = [term, ...prev.filter((t) => t !== term)].slice(0, MAX_HISTORY);
+      if (user && !user.isAnonymous && historyReady) {
+        patchUserPrefs(user.id, { search_history: cleaned });
+      }
       return cleaned;
     });
   };
@@ -276,7 +274,12 @@ const MonsterSearch = ({ onAddMonster, onViewStatBlock }) => {
             </button>
           ))}
           <button
-            onClick={() => { setSearchHistory([]); localStorage.removeItem(HISTORY_KEY); }}
+            onClick={() => {
+              setSearchHistory([]);
+              if (user && !user.isAnonymous) {
+                patchUserPrefs(user.id, { search_history: [] });
+              }
+            }}
             className="text-[10px] text-gray-600 hover:text-red-400 active:text-red-400 px-1"
           >
             Borrar

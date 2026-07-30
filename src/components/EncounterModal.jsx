@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import pb from "../lib/pb";
+import { useAuth } from "../context/AuthContext";
 
 const EncounterModal = ({
   isOpen,
@@ -6,25 +8,56 @@ const EncounterModal = ({
   currentCombatants,
   onLoadEncounter,
 }) => {
+  const { user } = useAuth();
   const [encounters, setEncounters] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [newEncounterName, setNewEncounterName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-
-  // --- NUEVOS ESTADOS PARA TIRAR INICIATIVA ---
   const [deployingEncounter, setDeployingEncounter] = useState(null);
   const [initiativeRolls, setInitiativeRolls] = useState({});
 
   useEffect(() => {
-    const saved = localStorage.getItem("dm_encounters");
-    if (saved) setEncounters(JSON.parse(saved));
-  }, []);
+    if (!isOpen || !user || user.isAnonymous) {
+      setEncounters([]);
+      return;
+    }
 
-  useEffect(() => {
-    localStorage.setItem("dm_encounters", JSON.stringify(encounters));
-  }, [encounters]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const rows = await pb.collection("saved_encounters").getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        if (!cancelled) {
+          setEncounters(
+            rows.map((r) => ({
+              id: r.id,
+              name: r.name,
+              monsters: r.monsters || [],
+              date: r.date,
+            })),
+          );
+        }
+      } catch (error) {
+        console.error("Error al cargar encuentros:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-  const handleSaveCurrent = () => {
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, user]);
+
+  const handleSaveCurrent = async () => {
+    if (!user || user.isAnonymous) {
+      setErrorMsg("⚠️ Necesitas una cuenta para guardar encuentros.");
+      return;
+    }
     if (!newEncounterName.trim()) {
       setErrorMsg("⚠️ Escribe un nombre para el encuentro.");
       return;
@@ -43,35 +76,53 @@ const EncounterModal = ({
       deathSaves: { success: 0, failure: 0 },
     }));
 
-    const newEncounter = {
-      id: Date.now(),
-      name: newEncounterName,
-      monsters: cleanCombatants,
-      date: new Date().toLocaleDateString(),
-    };
-    setEncounters([newEncounter, ...encounters]);
-    setNewEncounterName("");
+    try {
+      const created = await pb.collection("saved_encounters").create({
+        dm_id: user.id,
+        name: newEncounterName,
+        monsters: cleanCombatants,
+        date: new Date().toLocaleDateString(),
+      });
+      setEncounters((prev) => [
+        {
+          id: created.id,
+          name: created.name,
+          monsters: created.monsters || [],
+          date: created.date,
+        },
+        ...prev,
+      ]);
+      setNewEncounterName("");
+    } catch (error) {
+      console.error("Error al guardar encuentro:", error);
+      setErrorMsg("⚠️ No se pudo guardar el encuentro.");
+    }
   };
 
-  const handleConfirmDelete = (id) => {
-    setEncounters(encounters.filter((e) => e.id !== id));
+  const handleConfirmDelete = async (id) => {
+    try {
+      if (user && !user.isAnonymous) {
+        await pb.collection("saved_encounters").delete(id);
+      }
+      setEncounters(encounters.filter((e) => e.id !== id));
+    } catch (error) {
+      console.error("Error al borrar encuentro:", error);
+    }
     setConfirmDeleteId(null);
   };
 
-  // --- PASO 1: Iniciar Despliegue de Encuentro ---
   const handleStartDeploy = (encounter) => {
     const rolls = {};
-    encounter.monsters.forEach((m, idx) => (rolls[idx] = "")); // Usamos el índice porque varios monstruos pueden ser iguales
+    encounter.monsters.forEach((_m, idx) => (rolls[idx] = ""));
     setInitiativeRolls(rolls);
     setDeployingEncounter(encounter);
   };
 
-  // --- PASO 2: Confirmar y enviar al combate ---
   const handleConfirmDeploy = () => {
     const squadWithInit = deployingEncounter.monsters.map((m, idx) => ({
       ...m,
       initiative: parseInt(initiativeRolls[idx]) || 0,
-      id: Date.now() + Math.random(), // Generamos IDs limpios para el combate nuevo
+      id: Date.now() + Math.random(),
     }));
 
     onLoadEncounter(squadWithInit);
@@ -113,9 +164,6 @@ const EncounterModal = ({
         </div>
 
         <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
-          {/* =========================================
-              VISTA 1: TIRAR INICIATIVA DE MONSTRUOS
-              ========================================= */}
           {deployingEncounter ? (
             <div className="animate-fade-in">
               <p className="text-gray-400 text-sm mb-4">
@@ -170,10 +218,12 @@ const EncounterModal = ({
               </div>
             </div>
           ) : (
-            /* =========================================
-             VISTA 2: GESTIÓN DE ENCUENTROS NORMAL
-             ========================================= */
             <div className="animate-fade-in space-y-8">
+              {user?.isAnonymous && (
+                <p className="text-xs text-amber-400 bg-amber-950/20 border border-amber-800 rounded p-3">
+                  Los encuentros se guardan en tu cuenta. Entra con email o Google para persistirlos.
+                </p>
+              )}
               <div className="bg-gray-800/50 p-4 rounded border border-gray-700">
                 <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">
                   Guardar Mesa Actual
@@ -203,7 +253,7 @@ const EncounterModal = ({
                 ) : (
                   <p className="text-xs text-gray-500 mt-2 italic">
                     Se guardarán los <strong>{currentCombatants.length}</strong>{" "}
-                    combatientes actuales.
+                    combatientes actuales en tu cuenta.
                   </p>
                 )}
               </div>
@@ -212,7 +262,9 @@ const EncounterModal = ({
                 <h3 className="text-sm font-bold text-gray-400 uppercase mb-3 border-b border-gray-700 pb-1">
                   Encuentros Preparados
                 </h3>
-                {encounters.length === 0 ? (
+                {loading ? (
+                  <p className="text-center text-gray-600 py-4 italic">Cargando...</p>
+                ) : encounters.length === 0 ? (
                   <p className="text-center text-gray-600 py-4 italic">
                     No hay encuentros guardados.
                   </p>

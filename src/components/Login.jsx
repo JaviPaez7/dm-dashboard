@@ -221,7 +221,7 @@ const Login = () => {
               disabled={loading}
               className="text-gray-600 hover:text-green-500 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
             >
-              ⚔️ Entrar como Invitado (Sin cuenta)
+              ⚔️ Entrar como Invitado (sin guardado)
             </button>
           </div>
         </div>

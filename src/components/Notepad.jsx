@@ -1,62 +1,62 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db } from "../lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import pb from "../lib/pb";
 import { useAuth } from "../context/AuthContext";
 
 const Notepad = () => {
   const [note, setNote] = useState("");
   const { user } = useAuth();
   const timeoutRef = useRef(null);
+  const noteIdRef = useRef(null);
 
-  // Cargar nota guardada al iniciar
   useEffect(() => {
     const fetchNote = async () => {
-      if (!user) return;
-      
-      if (user.isAnonymous) {
-        const savedNote = localStorage.getItem("dm_notepad");
-        if (savedNote) setNote(savedNote);
+      if (!user || user.isAnonymous) {
+        setNote("");
+        noteIdRef.current = null;
         return;
       }
-      
+
       try {
-        const docRef = doc(db, 'dm_notes', user.id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setNote(docSnap.data().content || "");
+        const rows = await pb.collection("dm_notes").getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        if (rows.length > 0) {
+          noteIdRef.current = rows[0].id;
+          setNote(rows[0].content || "");
         } else {
-          const savedNote = localStorage.getItem("dm_notepad");
-          if (savedNote) setNote(savedNote);
+          noteIdRef.current = null;
+          setNote("");
         }
       } catch (error) {
-        console.error("Error al cargar nota de Firebase:", error);
-        const savedNote = localStorage.getItem("dm_notepad");
-        if (savedNote) setNote(savedNote);
+        console.error("Error al cargar nota de PocketBase:", error);
       }
     };
 
     fetchNote();
   }, [user]);
 
-  // Guardar cada vez que escribes (Debounced)
   const handleChange = (e) => {
     const text = e.target.value;
     setNote(text);
-    localStorage.setItem("dm_notepad", text);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
+
     timeoutRef.current = setTimeout(async () => {
-      if (user && !user.isAnonymous) {
-        try {
-          await setDoc(doc(db, 'dm_notes', user.id), {
+      if (!user || user.isAnonymous) return;
+      try {
+        if (noteIdRef.current) {
+          await pb.collection("dm_notes").update(noteIdRef.current, {
+            content: text,
+          });
+        } else {
+          const created = await pb.collection("dm_notes").create({
             dm_id: user.id,
             content: text,
-            updated_at: new Date().toISOString()
           });
-        } catch (error) {
-          console.error("Error al guardar nota en Firebase:", error);
+          noteIdRef.current = created.id;
         }
+      } catch (error) {
+        console.error("Error al guardar nota en PocketBase:", error);
       }
     }, 1500);
   };
@@ -66,14 +66,20 @@ const Notepad = () => {
       <h2 className="text-xl font-bold mb-4 text-gray-400 flex items-center gap-2 font-fantasy">
         <span>📜</span> Notas del DM
       </h2>
+      {user?.isAnonymous && (
+        <p className="text-xs text-amber-400 mb-2">
+          Inicia sesión con una cuenta para guardar tus notas en la nube.
+        </p>
+      )}
       <textarea
         className="flex-grow w-full bg-gray-900/50 text-gray-300 p-4 rounded-lg border border-gray-700 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none resize-none font-sans text-sm leading-relaxed custom-scrollbar shadow-inner"
         placeholder="Escribe aquí recordatorios, nombres de NPCs improvisados o tesoros ocultos..."
         value={note}
         onChange={handleChange}
+        disabled={user?.isAnonymous}
       />
       <div className="mt-2 text-xs text-gray-600 text-right italic">
-        Se guarda automáticamente
+        {user?.isAnonymous ? "Solo disponible con cuenta" : "Se guarda automáticamente en tu cuenta"}
       </div>
     </div>
   );

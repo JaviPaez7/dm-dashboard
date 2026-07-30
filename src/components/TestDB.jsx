@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, getDocs, doc, setDoc, query, where } from 'firebase/firestore';
+import pb from '../lib/pb';
 
 const TestDB = () => {
   const { user } = useAuth();
@@ -17,68 +16,58 @@ const TestDB = () => {
     const runDiagnostics = async () => {
       setLoading(true);
       setLogs([]);
-      addLog("=== Iniciando diagnóstico de base de datos ===");
+      addLog('=== Iniciando diagnóstico de PocketBase ===');
+      addLog('API: https://api-dm.javistudio.dev');
 
-      // 1. Verificar variables de entorno de Firebase
-      try {
-        const config = {
-          apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? `${import.meta.env.VITE_FIREBASE_API_KEY.slice(0, 6)}...${import.meta.env.VITE_FIREBASE_API_KEY.slice(-4)}` : "FALTA (vacío)",
-          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "FALTA (vacío)",
-          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "FALTA (vacío)",
-          appId: import.meta.env.VITE_FIREBASE_APP_ID || "FALTA (vacío)"
-        };
-        addLog(`Configuración de Firebase detectada: Proyecto ID = ${config.projectId}, Auth Domain = ${config.authDomain}`);
-        addLog(`API Key: ${config.apiKey}`);
-      } catch (err) {
-        addLog(`Error al leer variables de entorno: ${err.message}`, 'error');
-      }
-
-      // 2. Verificar usuario
       if (!user) {
-        addLog("No hay ningún usuario autenticado en la sesión.", "warning");
+        addLog('No hay ningún usuario autenticado en la sesión.', 'warning');
         setLoading(false);
         return;
       }
 
-      addLog(`Usuario autenticado detectado: Email = ${user.email}, UID = ${user.id}, Anónimo = ${user.isAnonymous}`);
+      addLog(`Usuario autenticado: Email = ${user.email}, UID = ${user.id}, Anónimo = ${user.isAnonymous}`);
 
-      // 3. Probar lectura de Monstruos Personalizados sin filtro
       try {
         addLog("Intentando leer TODA la colección 'custom_monsters' sin filtros...");
-        const allMonstersSnap = await getDocs(collection(db, 'custom_monsters'));
-        addLog(`Éxito total. Se encontraron ${allMonstersSnap.size} monstruos en total en la colección 'custom_monsters'.`);
-        
-        allMonstersSnap.forEach(doc => {
-          const data = doc.data();
-          addLog(`Monstruo: ID = ${doc.id}, Nombre = ${data.name}, user_id = ${data.user_id}`);
-        });
+        const all = await pb.collection('custom_monsters').getFullList();
+        addLog(`Éxito. Se encontraron ${all.length} monstruos en total.`);
+        all.forEach((m) => addLog(`Monstruo: ID = ${m.id}, Nombre = ${m.name}, user_id = ${m.user_id}`));
       } catch (err) {
         addLog(`Error al leer colección sin filtros: ${err.message}`, 'error');
       }
 
-      // 4. Probar lectura de Monstruos Personalizados con filtro del usuario actual
       try {
         addLog(`Intentando leer 'custom_monsters' filtrando por user_id == '${user.id}'...`);
-        const q = query(collection(db, 'custom_monsters'), where('user_id', '==', user.id));
-        const userMonstersSnap = await getDocs(q);
-        addLog(`Éxito. Se encontraron ${userMonstersSnap.size} monstruos asociados a tu UID.`);
-        
-        userMonstersSnap.forEach(doc => {
-          const data = doc.data();
-          addLog(`Tu Monstruo: Nombre = ${data.name}, HP = ${data.hp}, AC = ${data.ac}`);
+        const mine = await pb.collection('custom_monsters').getFullList({
+          filter: `user_id = "${user.id}"`,
         });
+        addLog(`Éxito. Se encontraron ${mine.length} monstruos asociados a tu UID.`);
+        mine.forEach((m) => addLog(`Tu Monstruo: Nombre = ${m.name}, HP = ${m.hp}, AC = ${m.ac}`));
       } catch (err) {
         addLog(`Error al filtrar monstruos por user_id: ${err.message}`, 'error');
       }
 
-      // 5. Probar lectura del grupo (party_members)
       try {
         addLog(`Intentando leer 'party_members' para dm_id == '${user.id}'...`);
-        const q = query(collection(db, 'party_members'), where('dm_id', '==', user.id));
-        const partySnap = await getDocs(q);
-        addLog(`Éxito. Se encontraron ${partySnap.size} miembros de grupo asociados a tu UID.`);
+        const party = await pb.collection('party_members').getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        addLog(`Éxito. Se encontraron ${party.length} miembros de grupo asociados a tu UID.`);
       } catch (err) {
         addLog(`Error al leer party_members: ${err.message}`, 'error');
+      }
+
+      try {
+        addLog(`Intentando leer 'user_prefs' y 'saved_encounters'...`);
+        const prefs = await pb.collection('user_prefs').getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        const enc = await pb.collection('saved_encounters').getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        addLog(`Preferencias: ${prefs.length} · Encuentros guardados: ${enc.length}`);
+      } catch (err) {
+        addLog(`Error al leer prefs/encuentros: ${err.message}`, 'error');
       }
 
       setLoading(false);
@@ -88,71 +77,48 @@ const TestDB = () => {
   }, [user]);
 
   const handleTestWrite = async () => {
-    if (!user) return;
+    if (!user || user.isAnonymous) {
+      setTestWriteStatus('Necesitas una cuenta real');
+      return;
+    }
     setTestWriteStatus('Escribiendo...');
     try {
-      const testRef = doc(db, 'test_connection', user.id);
-      await setDoc(testRef, {
-        updated_at: new Date().toISOString(),
+      const created = await pb.collection('custom_monsters').create({
         user_id: user.id,
-        email: user.email
+        name: 'TEST_MONSTER_DELETE_ME',
+        type: 'test',
+        hp: 1,
+        ac: 10,
+        dexterity: 10,
+        cr: '0',
+        stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+        special_abilities: [],
+        actions: [],
       });
-      setTestWriteStatus('¡Escritura exitosa! Reglas de escritura funcionando.');
-      addLog("Escritura de prueba en 'test_connection' completada con éxito.", "info");
+      await pb.collection('custom_monsters').delete(created.id);
+      setTestWriteStatus('✅ Escritura y borrado OK');
+      addLog('Test de escritura: OK (create + delete)', 'success');
     } catch (err) {
-      setTestWriteStatus(`Error de escritura: ${err.message}`);
-      addLog(`Error de escritura: ${err.message}`, 'error');
+      setTestWriteStatus(`❌ Error: ${err.message}`);
+      addLog(`Test de escritura falló: ${err.message}`, 'error');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-gray-200 p-8 font-sans">
-      <div className="max-w-3xl mx-auto bg-[#121212] border border-gray-800 rounded-xl p-6 shadow-2xl">
-        <h1 className="text-2xl font-bold text-yellow-500 mb-4 border-b border-gray-800 pb-2">
-          🔍 Diagnóstico de Base de Datos Firebase
-        </h1>
-
-        <div className="mb-6 flex gap-4">
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-sm font-bold transition-all"
-          >
-            ← Volver al Panel Principal
-          </button>
-          <button 
-            onClick={handleTestWrite}
-            className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded text-sm font-bold transition-all"
-          >
-            Probar Escritura Directa
-          </button>
-        </div>
-
-        <div className="mb-4">
-          <span className="text-xs text-gray-500 uppercase font-black">Estado de Escritura de Prueba:</span>
-          <div className="mt-1 p-2 bg-black/40 rounded border border-gray-800 text-sm font-mono">
-            {testWriteStatus}
+    <div className="min-h-screen bg-gray-950 text-gray-200 p-6 font-mono text-sm">
+      <h1 className="text-2xl font-bold text-yellow-500 mb-4">Diagnóstico PocketBase</h1>
+      {loading && <p className="text-gray-400 animate-pulse">Ejecutando pruebas...</p>}
+      <div className="space-y-2 mb-6 max-h-[60vh] overflow-y-auto">
+        {logs.map((l, i) => (
+          <div key={i} className={`${l.type === 'error' ? 'text-red-400' : l.type === 'warning' ? 'text-amber-400' : l.type === 'success' ? 'text-green-400' : 'text-gray-300'}`}>
+            <span className="text-gray-600">[{l.time}]</span> {l.message}
           </div>
-        </div>
-
-        <div>
-          <span className="text-xs text-gray-500 uppercase font-black">Logs del Diagnóstico:</span>
-          <div className="mt-2 bg-[#050505] border border-gray-800 rounded-lg p-4 h-[400px] overflow-y-auto font-mono text-xs space-y-2">
-            {logs.map((log, i) => (
-              <div key={i} className={`p-1.5 rounded ${
-                log.type === 'error' ? 'bg-red-950/20 text-red-400 border-l-2 border-red-600' :
-                log.type === 'warning' ? 'bg-yellow-950/20 text-yellow-400 border-l-2 border-yellow-600' :
-                'text-gray-300'
-              }`}>
-                <span className="text-gray-600 mr-2">[{log.time}]</span>
-                {log.message}
-              </div>
-            ))}
-            {loading && (
-              <div className="text-yellow-500 animate-pulse">⏳ Ejecutando pruebas...</div>
-            )}
-          </div>
-        </div>
+        ))}
       </div>
+      <button onClick={handleTestWrite} className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold px-4 py-2 rounded">
+        Probar escritura
+      </button>
+      <p className="mt-2 text-xs text-gray-500">{testWriteStatus}</p>
     </div>
   );
 };

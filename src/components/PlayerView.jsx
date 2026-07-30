@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import pb from '../lib/pb';
 import ThemeParticles from './ThemeParticles';
 
 const PlayerView = ({ dmId }) => {
@@ -9,47 +8,72 @@ const PlayerView = ({ dmId }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const docRef = doc(db, 'encounters_live', dmId);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data && data.state_data) {
-          setEncounterState(data.state_data);
+    let unsub = null;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const rows = await pb.collection('encounters_live').getFullList({
+          filter: `dm_id = "${dmId}"`,
+        });
+        if (cancelled) return;
+        if (rows.length > 0) {
+          setEncounterState(rows[0].state_data || null);
           setError(null);
         } else {
-          setError("No hay ningún combate activo en este momento.");
+          setEncounterState(null);
+          setError('No hay ningún combate activo en este momento.');
         }
-      } else {
-        setError("No hay ningún combate activo en este momento.");
+      } catch (err) {
+        console.error('Error al conectar con PocketBase:', err);
+        if (!cancelled) setError('Error al conectar con la crónica de batalla.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
-    }, (err) => {
-      console.error("Error de conexión en tiempo real:", err);
-      setError("Error al conectar con la crónica de batalla.");
-      setLoading(false);
-    });
+    };
+
+    const subscribe = async () => {
+      try {
+        unsub = await pb.collection('encounters_live').subscribe('*', (event) => {
+          if (event.record?.dm_id !== dmId) return;
+          if (event.action === 'create' || event.action === 'update') {
+            setEncounterState(event.record.state_data || null);
+            setError(null);
+          } else if (event.action === 'delete') {
+            setEncounterState(null);
+            setError('El combate ha terminado.');
+          }
+        });
+      } catch (err) {
+        console.error('Error de conexión en tiempo real:', err);
+      }
+    };
+
+    load();
+    subscribe();
 
     return () => {
-      unsubscribe();
+      cancelled = true;
+      if (unsub) {
+        pb.collection('encounters_live').unsubscribe('*');
+      }
     };
   }, [dmId]);
 
-  // Extraemos la información del combate actual, incluyendo el tema activo
-  const { 
-    combatants = [], 
-    currentTurnIndex = 0, 
+  const {
+    combatants = [],
+    currentTurnIndex = 0,
     roundCount = 1,
-    activeTheme = "fortaleza" 
+    activeTheme = 'fortaleza',
   } = encounterState || {};
 
-  // Efecto para sincronizar el tema ambiental en el body del jugador
   useEffect(() => {
     if (!activeTheme) return;
-    const themes = ["theme-fortaleza", "theme-bosque", "theme-infierno", "theme-tundra", "theme-piratas"];
+    const themes = ['theme-fortaleza', 'theme-bosque', 'theme-infierno', 'theme-tundra', 'theme-piratas'];
     document.body.classList.remove(...themes);
     document.body.classList.add(`theme-${activeTheme}`);
-    if (!document.body.classList.contains("theme-transition")) {
-      document.body.classList.add("theme-transition");
+    if (!document.body.classList.contains('theme-transition')) {
+      document.body.classList.add('theme-transition');
     }
   }, [activeTheme]);
 
@@ -80,63 +104,47 @@ const PlayerView = ({ dmId }) => {
   };
 
   return (
-    <div className="min-h-screen bg-dungeon-dark text-white p-4 md:p-8 relative overflow-x-hidden transition-colors duration-500">
-      {/* Fondo de ambiente y partículas sincronizadas con el DM */}
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8 relative overflow-hidden">
       <ThemeParticles activeTheme={activeTheme} />
-      
-      <div className="max-w-4xl mx-auto relative z-10 pb-20">
-        <header className="flex flex-col md:flex-row justify-between items-center md:items-end border-b border-dungeon-gold/30 pb-8 mb-10 gap-6">
-          <div className="text-center md:text-left">
-            <h1 className="text-3xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-dungeon-gold via-dungeon-accent to-dungeon-gold tracking-tighter uppercase mb-2 leading-none" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
-              Crónicas de Batalla
-            </h1>
-            <p className="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] opacity-80">Información del Reino para los Aventureros</p>
-          </div>
-          <div className="flex flex-col items-center bg-dungeon-panel px-6 py-3 rounded-2xl border border-dungeon-gold/20 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-            <span className="text-4xl md:text-5xl font-black text-dungeon-gold leading-none tracking-tighter">{roundCount}</span>
-            <span className="block text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-widest">Ronda Actual</span>
-          </div>
-        </header>
+      <div className="relative z-10 max-w-3xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-black text-red-600 tracking-tighter uppercase" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
+            Orden de Batalla
+          </h1>
+          <p className="text-yellow-500 font-bold mt-2 tracking-widest uppercase text-sm">
+            Ronda {roundCount}
+          </p>
+        </div>
 
-        <div className="space-y-6">
+        <div className="space-y-3">
           {combatants.map((c, idx) => {
             const isActive = idx === currentTurnIndex;
-            const health = getHealthStatus(c);
-            
+            const status = getHealthStatus(c);
             return (
-              <div 
-                key={c.id} 
-                className={`group flex items-center gap-3 md:gap-6 transition-all duration-500 ${isActive ? 'translate-x-2' : 'opacity-30 grayscale-[0.5] blur-[1px] hover:blur-0 hover:opacity-60'}`}
+              <div
+                key={c.id || idx}
+                className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                  isActive
+                    ? 'bg-red-950/40 border-red-600 shadow-[0_0_20px_rgba(220,38,38,0.25)] scale-[1.02]'
+                    : 'bg-gray-900/70 border-gray-800'
+                }`}
               >
-                {/* Iniciativa */}
-                <div className={`w-12 h-12 md:w-16 md:h-16 flex-shrink-0 flex items-center justify-center font-black text-xl md:text-2xl rounded-full border-2 transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${isActive ? 'bg-dungeon-red border-dungeon-gold text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'bg-dungeon-panel border-dungeon-border text-gray-500'}`}>
-                  {c.initiative}
-                </div>
-
-                {/* Tarjeta del Combatiente */}
-                <div className={`flex-grow min-h-[70px] md:min-h-[85px] flex items-center px-4 md:px-10 rounded-xl md:rounded-2xl transition-all border-l-4 shadow-2xl relative overflow-hidden ${isActive ? 'bg-dungeon-panel border-dungeon-red ring-1 ring-dungeon-red/20 shadow-dungeon-red/20' : 'bg-dungeon-panel/40 border-dungeon-border'}`}>
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-dungeon-red/10 to-transparent pointer-events-none animate-pulse"></div>
-                  )}
-                  
-                  <div className="flex-grow py-4 relative z-10">
-                    <h3 className={`text-lg md:text-3xl font-bold uppercase tracking-wider transition-colors ${isActive ? 'text-white' : 'text-gray-500'}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`text-xs font-bold w-8 h-8 rounded-full flex items-center justify-center border ${isActive ? 'bg-red-700 border-red-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}>
+                    {c.initiative}
+                  </span>
+                  <div className="min-w-0">
+                    <div className={`font-bold truncate ${c.isPlayer ? 'text-blue-300' : 'text-gray-100'}`}>
                       {c.name}
-                    </h3>
-                    <div className="flex gap-2.5 mt-1.5 flex-wrap">
-                       {c.conditions?.map((cond, i) => (
-                          <span key={i} className="text-xl md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] filter grayscale-[0.3]">
-                            {cond}
-                          </span>
-                       ))}
+                    </div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider">
+                      {c.isPlayer ? 'PJ' : 'Enemigo'}
+                      {c.conditions?.length ? ` · ${c.conditions.join(' ')}` : ''}
                     </div>
                   </div>
-
-                  <div className={`px-3 py-1.5 rounded-lg bg-black/40 border border-white/5 transition-all ${isActive ? 'scale-110 border-dungeon-gold/20 shadow-[0_0_10px_rgba(0,0,0,0.5)]' : 'opacity-60'}`}>
-                    <span className={`text-[9px] md:text-[11px] font-black tracking-[0.2em] ${health.color} uppercase drop-shadow-sm`}>
-                      {health.label}
-                    </span>
-                  </div>
+                </div>
+                <div className={`text-sm font-black ${status.color}`}>
+                  {status.label}
                 </div>
               </div>
             );

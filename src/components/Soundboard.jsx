@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { db } from "../lib/firebase";
-import { collection, getDocs, query, where, doc, setDoc, deleteDoc } from "firebase/firestore";
+import pb from "../lib/pb";
+import { getUserPrefs, patchUserPrefs } from "../lib/userPrefs";
 import { useAuth } from "../context/AuthContext";
 
 // Configura aquí tus audios.
@@ -298,10 +298,8 @@ const Soundboard = () => {
   const [newSound, setNewSound] = useState({ label: '', url: '', is_loop: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem("dm_sound_favs");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [favorites, setFavorites] = useState([]);
+  const [favsReady, setFavsReady] = useState(false);
 
   // Usamos refs para los audios
   const ambientRef = useRef(new Audio());
@@ -312,43 +310,40 @@ const Soundboard = () => {
   const fadeIntervalsRef = useRef({ ambient: null, effect: null });
 
   useEffect(() => {
-    localStorage.setItem("dm_sound_favs", JSON.stringify(favorites));
-  }, [favorites]);
+    if (!favsReady || !user || user.isAnonymous) return;
+    patchUserPrefs(user.id, { sound_favs: favorites });
+  }, [favorites, favsReady, user]);
 
-  // Cargar sonidos personalizados de Firebase
+  // Cargar sonidos personalizados y favoritos de PocketBase
   useEffect(() => {
-    if (user && !user.isAnonymous) {
-      fetchCustomSounds();
+    if (!user) return;
+    if (user.isAnonymous) {
+      setCustomTracks([]);
+      setFavorites([]);
+      setFavsReady(true);
+      return;
     }
+    fetchCustomSounds();
+    getUserPrefs(user.id).then((prefs) => {
+      setFavorites(prefs.sound_favs || []);
+      setFavsReady(true);
+    });
   }, [user]);
 
   const fetchCustomSounds = async () => {
     try {
-      const q = query(
-        collection(db, 'custom_sounds'),
-        where('user_id', '==', user.id)
-      );
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Ordenar en memoria por created_at descendente
-      data.sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return dateB - dateA;
+      const data = await pb.collection("custom_sounds").getFullList({
+        filter: `user_id = "${user.id}"`,
       });
-      
-      setCustomTracks(data.map(track => ({
+
+      setCustomTracks(data.map((track) => ({
         ...track,
         file: track.url,
         loop: track.is_loop,
-        isCustom: true
+        isCustom: true,
       })));
     } catch (error) {
-      console.error("Error al cargar sonidos de Firebase:", error);
+      console.error("Error al cargar sonidos de PocketBase:", error);
     }
   };
 
@@ -363,13 +358,11 @@ const Soundboard = () => {
     
     setIsSubmitting(true);
     try {
-      const docRef = doc(collection(db, 'custom_sounds'));
-      await setDoc(docRef, {
+      await pb.collection("custom_sounds").create({
         user_id: user.id,
         label: newSound.label,
         url: newSound.url,
         is_loop: newSound.is_loop,
-        created_at: new Date().toISOString(),
         color: newSound.is_loop 
           ? "text-cyan-400 border-cyan-500/50 hover:bg-cyan-900/20" 
           : "text-gray-400 border-gray-500/50 hover:bg-gray-800/20"
@@ -379,7 +372,7 @@ const Soundboard = () => {
       setShowAddModal(false);
       fetchCustomSounds();
     } catch (error) {
-      console.error("Error al añadir sonido en Firebase:", error);
+      console.error("Error al añadir sonido en PocketBase:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -389,10 +382,10 @@ const Soundboard = () => {
     e.stopPropagation();
     if (!confirm("¿Borrar este sonido?")) return;
     try {
-      await deleteDoc(doc(db, 'custom_sounds', id));
+      await pb.collection("custom_sounds").delete(id);
       fetchCustomSounds();
     } catch (error) {
-      console.error("Error al borrar sonido en Firebase:", error);
+      console.error("Error al borrar sonido en PocketBase:", error);
     }
   };
 

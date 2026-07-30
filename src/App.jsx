@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Layout from "./components/Layout";
 import CombatTracker from "./components/CombatTracker";
 import MonsterSearch from "./components/MonsterSearch";
@@ -14,41 +14,45 @@ import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
 import Dice3DCanvas from "./components/Dice3DCanvas";
 import { useAuth } from "./context/AuthContext";
-import { db } from "./lib/firebase";
-import { doc, setDoc, getDocs, collection, query, where, deleteDoc } from "firebase/firestore";
+import pb from "./lib/pb";
+import { getUserPrefs, patchUserPrefs } from "./lib/userPrefs";
 import ThemeParticles from "./components/ThemeParticles";
 
 function App() {
-  // --- ESTADOS BASE (Sin cambios) ---
-  const [combatants, setCombatants] = useState(() => {
-    const saved = localStorage.getItem("dm_dashboard_combatants");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [party, setParty] = useState(() => {
-    const saved = localStorage.getItem("dm_dashboard_party");
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const { user, recoveryMode } = useAuth();
+  const [combatants, setCombatants] = useState([]);
+  const [party, setParty] = useState([]);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [roundCount, setRoundCount] = useState(1);
-  const [toast, setToast] = useState(null); // { name, hp } | null
+  const [toast, setToast] = useState(null);
   const [combatLogs, setCombatLogs] = useState([]);
   const [active3DRoll, setActive3DRoll] = useState(null);
-  const [activeTheme, setActiveTheme] = useState(() => {
-    return localStorage.getItem("dm_dashboard_theme") || "fortaleza";
-  });
+  const [activeTheme, setActiveTheme] = useState("fortaleza");
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
+  const liveEncounterId = useRef(null);
+  const [shareLink, setShareLink] = useState("");
+  const [activeTab, setActiveTab] = useState("monsters");
+  const [activeRightTab, setActiveRightTab] = useState("dice");
+  const [mobileView, setMobileView] = useState("combat");
+  const [viewingMonsterIndex, setViewingMonsterIndex] = useState(null);
+  const [viewingMonsterData, setViewingMonsterData] = useState(null);
+  const [isEncounterModalOpen, setIsEncounterModalOpen] = useState(false);
 
   useEffect(() => {
     const themes = ["theme-fortaleza", "theme-bosque", "theme-infierno", "theme-tundra", "theme-piratas"];
     document.body.classList.remove(...themes);
     document.body.classList.add(`theme-${activeTheme}`);
-    // Añadimos también la clase de transición
     if (!document.body.classList.contains("theme-transition")) {
       document.body.classList.add("theme-transition");
     }
-    localStorage.setItem("dm_dashboard_theme", activeTheme);
   }, [activeTheme]);
+
+  useEffect(() => {
+    if (!prefsReady || !user || user.isAnonymous) return;
+    patchUserPrefs(user.id, { theme: activeTheme });
+  }, [activeTheme, prefsReady, user]);
 
   const addCombatLog = (message) => {
     const newLog = {
@@ -63,37 +67,97 @@ function App() {
     setCombatLogs([]);
   };
 
-  // --- ESTADOS DE PESTAÑAS INTERNAS ---
-  const [activeTab, setActiveTab] = useState("monsters");
-  const [activeRightTab, setActiveRightTab] = useState("dice");
-
-  // --- NUEVO: ESTADO DE NAVEGACIÓN MÓVIL ---
-  // "combat" | "search" | "tools"
-  const [mobileView, setMobileView] = useState("combat");
-
-  // --- ESTADO DEL VISOR ---
-  const [viewingMonsterIndex, setViewingMonsterIndex] = useState(null);
-  const [viewingMonsterData, setViewingMonsterData] = useState(null);
-  const [isEncounterModalOpen, setIsEncounterModalOpen] = useState(false);
-
-  const { user, recoveryMode, setRecoveryMode } = useAuth();
-  const [shareLink, setShareLink] = useState("");
-
-  // --- PERSISTENCIA (Sin cambios) ---
+  // Cargar preferencias + party + combate desde PocketBase
   useEffect(() => {
-    localStorage.setItem("dm_dashboard_combatants", JSON.stringify(combatants));
-  }, [combatants]);
-  useEffect(() => {
-    localStorage.setItem("dm_dashboard_party", JSON.stringify(party));
-  }, [party]);
+    if (!user) return;
 
-  // --- NUEVO: SINCRONIZACIÓN EN TIEMPO REAL CON FIREBASE (VISTA JUGADOR) ---
-  useEffect(() => {
-    if (!user || user.isAnonymous) return;
+    if (user.isAnonymous) {
+      setCombatants([]);
+      setParty([]);
+      setCurrentTurnIndex(0);
+      setRoundCount(1);
+      setCombatLogs([]);
+      setActiveTheme("fortaleza");
+      setShareLink("");
+      liveEncounterId.current = null;
+      setPrefsReady(true);
+      setDataReady(true);
+      return;
+    }
 
-    const syncToFirebase = async () => {
+    let cancelled = false;
+    setPrefsReady(false);
+    setDataReady(false);
+    setShareLink(`${window.location.origin}/player/${user.id}`);
+
+    const loadAccountData = async () => {
+      try {
+        const prefs = await getUserPrefs(user.id);
+        if (!cancelled) {
+          setActiveTheme(prefs.theme || "fortaleza");
+          setPrefsReady(true);
+        }
+
+        const partyRows = await pb.collection("party_members").getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        if (!cancelled) {
+          setParty(
+            partyRows.map((p) => ({
+              id: p.id,
+              name: p.name,
+              hp: p.hp,
+              maxHp: p.max_hp,
+              ac: p.ac,
+              initiative: p.initiative,
+              isPlayer: p.is_player,
+            })),
+          );
+        }
+
+        const liveRows = await pb.collection("encounters_live").getFullList({
+          filter: `dm_id = "${user.id}"`,
+        });
+        if (!cancelled) {
+          if (liveRows.length > 0) {
+            liveEncounterId.current = liveRows[0].id;
+            const state = liveRows[0].state_data || {};
+            setCombatants(Array.isArray(state.combatants) ? state.combatants : []);
+            setCurrentTurnIndex(state.currentTurnIndex || 0);
+            setRoundCount(state.roundCount || 1);
+            if (state.activeTheme) setActiveTheme(state.activeTheme);
+            setCombatLogs(Array.isArray(state.combatLogs) ? state.combatLogs : []);
+          } else {
+            liveEncounterId.current = null;
+            setCombatants([]);
+            setCurrentTurnIndex(0);
+            setRoundCount(1);
+            setCombatLogs([]);
+          }
+          setDataReady(true);
+        }
+      } catch (error) {
+        console.error("Error al cargar datos de cuenta:", error);
+        if (!cancelled) {
+          setPrefsReady(true);
+          setDataReady(true);
+        }
+      }
+    };
+
+    loadAccountData();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Sincronizar combate en tiempo real (vista jugador + persistencia de cuenta)
+  useEffect(() => {
+    if (!user || user.isAnonymous || !dataReady) return;
+
+    const syncToPocketBase = async () => {
       const state = {
-        combatants: combatants.map(c => ({
+        combatants: combatants.map((c) => ({
           id: c.id,
           name: c.name,
           hp: c.hp,
@@ -101,105 +165,44 @@ function App() {
           initiative: c.initiative,
           isPlayer: c.isPlayer,
           conditions: c.conditions || [],
-          deathSaves: c.deathSaves || { success: 0, failure: 0 }
+          deathSaves: c.deathSaves || { success: 0, failure: 0 },
+          ac: c.ac,
+          apiIndex: c.apiIndex,
+          isLocal: c.isLocal,
+          localData: c.localData || null,
         })),
         currentTurnIndex,
         roundCount,
-        activeTheme
+        activeTheme,
+        combatLogs,
       };
 
       try {
-        await setDoc(doc(db, 'encounters_live', user.id), { 
-          dm_id: user.id, 
-          state_data: state,
-          updated_at: new Date().toISOString()
-        });
+        if (liveEncounterId.current) {
+          await pb.collection("encounters_live").update(liveEncounterId.current, {
+            state_data: state,
+          });
+        } else {
+          const created = await pb.collection("encounters_live").create({
+            dm_id: user.id,
+            state_data: state,
+          });
+          liveEncounterId.current = created.id;
+        }
       } catch (error) {
         console.error("Error al sincronizar combate:", error);
       }
     };
 
-    // Debounce ligero para no saturar la red en cada pequeño cambio
-    const timeout = setTimeout(syncToFirebase, 1000);
+    const timeout = setTimeout(syncToPocketBase, 1000);
     return () => clearTimeout(timeout);
-  }, [combatants, currentTurnIndex, roundCount, user, activeTheme]);
-
-  useEffect(() => {
-    if (user) {
-      if (user.isAnonymous) {
-        setShareLink("");
-        return;
-      }
-
-      setShareLink(`${window.location.origin}/player/${user.id}`);
-      
-      // Cargar Party desde Firebase
-      const fetchParty = async () => {
-        try {
-          const q = query(collection(db, 'party_members'), where('dm_id', '==', user.id));
-          const querySnapshot = await getDocs(q);
-          const mappedData = querySnapshot.docs.map(doc => {
-            const p = doc.data();
-            return {
-              id: doc.id,
-              name: p.name,
-              hp: p.hp,
-              maxHp: p.max_hp,
-              ac: p.ac,
-              initiative: p.initiative,
-              isPlayer: p.is_player
-            };
-          });
-          
-          if (mappedData.length > 0) {
-            setParty(mappedData);
-          } else if (party && party.length > 0) {
-            // Si la base de datos está vacía pero localmente tenemos un grupo, lo subimos
-            console.log("Subiendo grupo local a Firestore...");
-            for (const member of party) {
-              const memberRef = doc(collection(db, 'party_members'));
-              await setDoc(memberRef, {
-                dm_id: user.id,
-                name: member.name,
-                hp: member.hp,
-                max_hp: member.maxHp,
-                ac: member.ac,
-                initiative: member.initiative,
-                is_player: member.isPlayer
-              });
-            }
-            // Recargar para sincronizar IDs de Firestore
-            const updatedSnapshot = await getDocs(q);
-            setParty(updatedSnapshot.docs.map(doc => {
-              const p = doc.data();
-              return {
-                id: doc.id,
-                name: p.name,
-                hp: p.hp,
-                maxHp: p.max_hp,
-                ac: p.ac,
-                initiative: p.initiative,
-                isPlayer: p.is_player
-              };
-            }));
-          } else {
-            setParty([]);
-          }
-        } catch (error) {
-          console.error("Error al cargar la party:", error);
-        }
-      };
-
-      fetchParty();
-    }
-  }, [user]);
+  }, [combatants, currentTurnIndex, roundCount, user, activeTheme, combatLogs, dataReady]);
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
     alert("¡Enlace de Vista de Jugador copiado al portapapeles!");
   };
 
-  // --- TODAS TUS FUNCIONES DE COMBATE (Sin cambios) ---
   const addCombatant = (newCombatant) => {
     addCombatLog(`⚔️ ${newCombatant.name} se une al combate (Iniciativa: ${newCombatant.initiative}).`);
     setCombatants((prev) =>
@@ -210,7 +213,7 @@ function App() {
   };
   const updateInitiative = (id, newInitiative) => {
     setCombatants((prev) => {
-      const c = prev.find(x => x.id === id);
+      const c = prev.find((x) => x.id === id);
       if (c) addCombatLog(`🎲 Iniciativa de ${c.name} cambiada a ${newInitiative}.`);
       const updated = prev.map((c) =>
         c.id === id ? { ...c, initiative: newInitiative } : c,
@@ -226,7 +229,7 @@ function App() {
   };
   const removeCombatant = (id) => {
     setCombatants((prev) => {
-      const c = prev.find(x => x.id === id);
+      const c = prev.find((x) => x.id === id);
       if (c) addCombatLog(`✕ ${c.name} retirado del combate.`);
       return prev.filter((c) => c.id !== id);
     });
@@ -271,7 +274,7 @@ function App() {
     );
   const healCombatant = (id) => {
     setCombatants((prev) => {
-      const c = prev.find(x => x.id === id);
+      const c = prev.find((x) => x.id === id);
       if (c) addCombatLog(`⛑️ ${c.name} curado al máximo (${c.maxHp} HP).`);
       return prev.map((c) => (c.id === id ? { ...c, hp: c.maxHp } : c));
     });
@@ -360,55 +363,53 @@ function App() {
       isPlayer: false,
     });
 
-    // En móvil: mostrar toast de confirmación
     if (window.innerWidth < 1024) {
       showToast(data.name || "Criatura", finalHp);
     }
   };
+
   const savePartyMember = async (newMember) => {
-    // Optimistic Update
     setParty((prev) => {
       const exists = prev.find((p) => p.id === newMember.id);
       if (exists) {
         return prev.map((p) => (p.id === newMember.id ? newMember : p));
-      } else {
-        return [...prev, newMember];
       }
+      return [...prev, newMember];
     });
 
-    // Firebase Sync
     if (user && !user.isAnonymous) {
       try {
-        const isNew = typeof newMember.id !== 'string' || newMember.id.length < 10;
-        const memberRef = isNew 
-          ? doc(collection(db, 'party_members')) 
-          : doc(db, 'party_members', newMember.id);
-
-        await setDoc(memberRef, {
+        const isNew = typeof newMember.id !== "string" || newMember.id.length < 10;
+        const payload = {
           dm_id: user.id,
           name: newMember.name,
           hp: newMember.hp,
           max_hp: newMember.maxHp,
           ac: newMember.ac,
           initiative: newMember.initiative,
-          is_player: newMember.isPlayer
+          is_player: newMember.isPlayer,
+        };
+
+        if (isNew) {
+          await pb.collection("party_members").create(payload);
+        } else {
+          await pb.collection("party_members").update(newMember.id, payload);
+        }
+
+        const rows = await pb.collection("party_members").getFullList({
+          filter: `dm_id = "${user.id}"`,
         });
-        
-        // Refetch para asegurar IDs y consistencia
-        const q = query(collection(db, 'party_members'), where('dm_id', '==', user.id));
-        const querySnapshot = await getDocs(q);
-        setParty(querySnapshot.docs.map(doc => {
-          const p = doc.data();
-          return {
-            id: doc.id,
+        setParty(
+          rows.map((p) => ({
+            id: p.id,
             name: p.name,
             hp: p.hp,
             maxHp: p.max_hp,
             ac: p.ac,
             initiative: p.initiative,
-            isPlayer: p.is_player
-          };
-        }));
+            isPlayer: p.is_player,
+          })),
+        );
       } catch (error) {
         console.error("Error al guardar miembro de la party:", error);
       }
@@ -417,14 +418,15 @@ function App() {
 
   const deletePartyMember = async (id) => {
     setParty(party.filter((p) => p.id !== id));
-    if (user && !user.isAnonymous && typeof id === 'string' && id.length >= 10) {
+    if (user && !user.isAnonymous && typeof id === "string" && id.length >= 10) {
       try {
-        await deleteDoc(doc(db, 'party_members', id));
+        await pb.collection("party_members").delete(id);
       } catch (error) {
         console.error("Error al eliminar miembro de la party:", error);
       }
     }
   };
+
   const addPartyMemberToCombat = (member) => {
     addCombatLog(`🛡️ PJ ${member.name} se une al combate (Iniciativa: ${member.initiative}).`);
     setCombatants((prev) => {
@@ -458,14 +460,13 @@ function App() {
       return {
         ...m,
         isPlayer: false,
-        hp: m.maxHp, 
+        hp: m.maxHp,
       };
     });
     setCombatants((prev) =>
       [...prev, ...newCombatants].sort((a, b) => b.initiative - a.initiative),
     );
   };
-
 
   if (recoveryMode) {
     return <ResetPassword />;
@@ -478,7 +479,6 @@ function App() {
   return (
     <>
       <ThemeParticles activeTheme={activeTheme} />
-      {/* --- TOAST MÓVIL (monstruo añadido) — FUERA de Layout para no alterar children --- */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 lg:hidden pointer-events-none bg-gray-900 border border-green-600 text-green-300 text-xs font-bold px-4 py-2 rounded-full shadow-xl flex items-center gap-2 animate-fade-in">
           <span>⚔️</span>
@@ -486,15 +486,12 @@ function App() {
         </div>
       )}
 
-      {/* Pasamos el estado de la vista móvil y el setter al Layout */}
-      <Layout 
-        mobileView={mobileView} 
+      <Layout
+        mobileView={mobileView}
         setMobileView={setMobileView}
         activeTheme={activeTheme}
         onChangeTheme={setActiveTheme}
       >
-        
-        {/* --- HIJO 1: COLUMNA IZQUIERDA (COMBATE) --- */}
         <CombatTracker
           combatants={combatants}
           onAdd={addCombatant}
@@ -519,7 +516,6 @@ function App() {
           onClearLogs={clearCombatLogs}
         />
 
-        {/* --- HIJO 2: COLUMNA CENTRO (PESTAÑAS) --- */}
         <div className="flex flex-col h-full p-2">
           <div className="flex mb-2 bg-gray-800 rounded-lg p-1 border border-gray-700 shrink-0">
             <button
@@ -539,7 +535,7 @@ function App() {
             {activeTab === "monsters" ? (
               <MonsterSearch
                 onAddMonster={addMonsterToCombat}
-                onViewStatBlock={handleViewStatBlock} 
+                onViewStatBlock={handleViewStatBlock}
               />
             ) : (
               <SpellSearch />
@@ -547,7 +543,6 @@ function App() {
           </div>
         </div>
 
-        {/* --- HIJO 3: COLUMNA DERECHA (PESTAÑAS MULTIFUNCIÓN) --- */}
         <div className="flex flex-col h-full p-2">
           <div className="flex mb-2 bg-gray-800 rounded-lg p-1 border border-gray-700 shrink-0">
             <button
@@ -571,10 +566,10 @@ function App() {
           </div>
           <div className="flex-grow min-h-0 overflow-y-auto custom-scrollbar p-1">
             {activeRightTab === "dice" && (
-              <DiceRoller 
+              <DiceRoller
                 onTrigger3DRoll={(result, callback) => {
                   setActive3DRoll({ result, callback });
-                }} 
+                }}
               />
             )}
             {activeRightTab === "sound" && <Soundboard />}
@@ -582,7 +577,6 @@ function App() {
           </div>
         </div>
 
-        {/* --- HIJOS RESTANTES: MODALES INVISIBLES --- */}
         <PartyModal
           isOpen={isPartyModalOpen}
           onLongRest={handleLongRest}

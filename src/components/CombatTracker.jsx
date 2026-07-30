@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { getUserPrefs, patchUserPrefs } from "../lib/userPrefs";
 
 const CONDITIONS = [
   { label: "Cegado", icon: "👁️‍🗨️", desc: "Falla pruebas de vista. Ataques contra él tienen ventaja, sus ataques tienen desventaja." },
@@ -361,13 +363,32 @@ const CombatTracker = ({
   const [confirmClearMonsters, setConfirmClearMonsters] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
-  const [isLogCollapsed, setIsLogCollapsed] = useState(() => {
-    return localStorage.getItem("dm_combat_log_collapsed") === "true";
-  });
+  const { user } = useAuth();
+  const [isLogCollapsed, setIsLogCollapsed] = useState(false);
+  const [prefsReady, setPrefsReady] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("dm_combat_log_collapsed", isLogCollapsed);
-  }, [isLogCollapsed]);
+    if (!user || user.isAnonymous) {
+      setIsLogCollapsed(false);
+      setPrefsReady(true);
+      return;
+    }
+    let cancelled = false;
+    getUserPrefs(user.id).then((prefs) => {
+      if (!cancelled) {
+        setIsLogCollapsed(!!prefs.combat_log_collapsed);
+        setPrefsReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!prefsReady || !user || user.isAnonymous) return;
+    patchUserPrefs(user.id, { combat_log_collapsed: isLogCollapsed });
+  }, [isLogCollapsed, prefsReady, user]);
 
   const logEndRef = useRef(null);
 

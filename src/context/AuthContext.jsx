@@ -1,18 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut as firebaseSignOut, 
-  sendPasswordResetEmail, 
-  updatePassword as updateFirebasePassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInAnonymously as firebaseSignInAnonymously
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import pb from "../lib/pb";
 
 const AuthContext = createContext({});
+
+const mapUser = (record) => {
+  if (!record) return null;
+  return {
+    uid: record.id,
+    id: record.id,
+    email: record.email,
+    isAnonymous: false,
+  };
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -20,49 +19,53 @@ export const AuthProvider = ({ children }) => {
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
-    // Escuchar cambios de estado de autenticación en Firebase
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
+    if (pb.authStore.isValid && pb.authStore.record) {
+      setUser(mapUser(pb.authStore.record));
+    }
+    setLoading(false);
+
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      setUser(mapUser(record));
     });
 
-    // En Firebase, el flujo de recuperación de contraseña suele ocurrir
-    // en una página externa gestionada por Firebase, por lo que recoveryMode
-    // no se activará automáticamente a menos que implementemos un manejador de enlaces
-    // personalizado. Dejamos el estado por compatibilidad de tipos.
     return () => unsubscribe();
   }, []);
 
   const value = {
     signUp: async ({ email, password }) => {
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        return { data: userCredential, error: null };
+        const created = await pb.collection("users").create({
+          email,
+          password,
+          passwordConfirm: password,
+        });
+        await pb.collection("users").authWithPassword(email, password);
+        return { data: created, error: null };
       } catch (error) {
         return { data: null, error };
       }
     },
     signIn: async ({ email, password }) => {
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        return { data: userCredential, error: null };
+        const data = await pb.collection("users").authWithPassword(email, password);
+        return { data, error: null };
       } catch (error) {
         return { data: null, error };
       }
     },
     resetPassword: async (email) => {
       try {
-        await sendPasswordResetEmail(auth, email);
+        await pb.collection("users").requestPasswordReset(email);
         return { error: null };
       } catch (error) {
         return { error };
       }
     },
-    updatePassword: async (newPassword) => {
+    updatePassword: async () => {
       try {
-        if (!auth.currentUser) throw new Error("No hay ningún usuario autenticado.");
-        await updateFirebasePassword(auth.currentUser, newPassword);
-        return { error: null };
+        throw pb.authStore.record
+          ? new Error("Usa la opción de 'Olvidé mi contraseña' para cambiarla.")
+          : new Error("No hay ningún usuario autenticado.");
       } catch (error) {
         return { error };
       }
@@ -70,38 +73,39 @@ export const AuthProvider = ({ children }) => {
     signOut: async () => {
       setRecoveryMode(false);
       try {
-        await firebaseSignOut(auth);
+        pb.authStore.clear();
+        setUser(null);
         return { error: null };
       } catch (error) {
         return { error };
       }
     },
     signInWithGoogle: async () => {
-      const provider = new GoogleAuthProvider();
       try {
-        const userCredential = await signInWithPopup(auth, provider);
-        return { data: userCredential, error: null };
+        const data = await pb.collection("users").authWithOAuth2({ provider: "google" });
+        return { data, error: null };
       } catch (error) {
         return { data: null, error };
       }
     },
     signInAnonymously: async () => {
       try {
-        const userCredential = await firebaseSignInAnonymously(auth);
-        return { data: userCredential, error: null };
+        const anon = {
+          uid: `anon_${Date.now()}`,
+          id: `anon_${Date.now()}`,
+          email: null,
+          isAnonymous: true,
+        };
+        setUser(anon);
+        return { data: anon, error: null };
       } catch (error) {
         return { data: null, error };
       }
     },
-    user: user ? {
-      uid: user.uid,
-      id: user.uid,
-      email: user.email,
-      isAnonymous: user.isAnonymous
-    } : null,
+    user,
     loading,
     recoveryMode,
-    setRecoveryMode
+    setRecoveryMode,
   };
 
   return (
@@ -111,6 +115,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);
